@@ -9,7 +9,8 @@
     synthwave: { label: 'Synthwave',     bg1: '#1a0b2e', bg2: '#05010f', accent: '#ff3fa4' },
     midnight:  { label: 'Midnight Focus',bg1: '#0b1220', bg2: '#02030a', accent: '#5fb4ff' },
     codefi:    { label: 'Codefi Neon',   bg1: '#0a0f12', bg2: '#020404', accent: '#39ff9c' },
-    rain:      { label: 'Rainy Night',   bg1: '#151b26', bg2: '#05070c', accent: '#8ea9c9' }
+    rain:      { label: 'Rainy Night',   bg1: '#151b26', bg2: '#05070c', accent: '#8ea9c9' },
+    matrix:    { label: 'Matrix',        bg1: '#001904', bg2: '#000000', accent: '#00ff41', vizStyle: 'matrix' }
   };
 
   const defaultState = {
@@ -24,7 +25,13 @@
     clockPos: null,
     volume: 70,
     tracks: [],
-    streamHistory: []
+    streamHistory: [],
+    bgMode: 'dynamic',
+    wallpaperPath: null,
+    wallpaperFit: 'cover',
+    wallpaperDim: 35,
+    wallpaperBlur: 0,
+    wallpaperShowViz: true
   };
 
   let state = loadState();
@@ -78,6 +85,12 @@
         state.customAccent = null;
         state.customBg1 = null;
         state.customBg2 = null;
+        if (t.vizStyle) {
+          state.vizStyle = t.vizStyle;
+          document.querySelectorAll('#viz-style-row .chip').forEach((c) => {
+            c.classList.toggle('active', c.dataset.style === t.vizStyle);
+          });
+        }
         applyTheme();
         renderPresetGrid();
         syncColorInputs();
@@ -196,6 +209,81 @@
       saveState();
     });
   })();
+
+  // ---------- Wallpaper / background mode ----------
+  const wallpaperBg = document.getElementById('wallpaper-bg');
+  const wallpaperOverlay = document.getElementById('wallpaper-overlay');
+  const wallpaperControls = document.getElementById('wallpaper-controls');
+  const visualizerCanvas = document.getElementById('visualizer');
+
+  function applyBackgroundMode() {
+    const isWallpaper = state.bgMode === 'wallpaper';
+    wallpaperControls.classList.toggle('hidden', !isWallpaper);
+    wallpaperBg.classList.toggle('hidden', !isWallpaper || !state.wallpaperPath);
+    document.getElementById('bg-glow').classList.toggle('hidden', isWallpaper);
+
+    if (isWallpaper && state.wallpaperPath) {
+      wallpaperBg.style.backgroundImage = `url("file://${state.wallpaperPath.replace(/\\/g, '/')}")`;
+      wallpaperBg.style.filter = state.wallpaperBlur > 0 ? `blur(${state.wallpaperBlur}px)` : 'none';
+      wallpaperBg.classList.remove('fit-cover', 'fit-contain', 'fit-tile');
+      wallpaperBg.classList.add('fit-' + state.wallpaperFit);
+      wallpaperOverlay.style.opacity = state.wallpaperDim / 100;
+    }
+
+    const hideViz = isWallpaper && !state.wallpaperShowViz;
+    visualizerCanvas.classList.toggle('viz-hidden', hideViz);
+  }
+
+  document.querySelectorAll('#bg-mode-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#bg-mode-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.bgMode = chip.dataset.bgmode;
+      applyBackgroundMode();
+      saveState();
+    });
+  });
+
+  document.getElementById('choose-wallpaper-btn').addEventListener('click', async () => {
+    const img = await window.codevibe.pickWallpaperImage();
+    if (img) {
+      state.wallpaperPath = img.path;
+      applyBackgroundMode();
+      saveState();
+    }
+  });
+
+  document.getElementById('clear-wallpaper-btn').addEventListener('click', () => {
+    state.wallpaperPath = null;
+    applyBackgroundMode();
+    saveState();
+  });
+
+  document.querySelectorAll('#wallpaper-fit-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#wallpaper-fit-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.wallpaperFit = chip.dataset.fit;
+      applyBackgroundMode();
+      saveState();
+    });
+  });
+
+  document.getElementById('wallpaper-dim').addEventListener('input', (e) => {
+    state.wallpaperDim = Number(e.target.value);
+    applyBackgroundMode();
+    saveState();
+  });
+  document.getElementById('wallpaper-blur').addEventListener('input', (e) => {
+    state.wallpaperBlur = Number(e.target.value);
+    applyBackgroundMode();
+    saveState();
+  });
+  document.getElementById('wallpaper-viz-toggle').addEventListener('change', (e) => {
+    state.wallpaperShowViz = e.target.checked;
+    applyBackgroundMode();
+    saveState();
+  });
 
   // ---------- Local library ----------
   const audioEl = document.getElementById('audio-el');
@@ -413,6 +501,7 @@
   function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    initMatrix();
   }
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
@@ -445,6 +534,37 @@
     }));
   }
   initParticles();
+
+  const MATRIX_FONT_SIZE = 16;
+  const MATRIX_CHARS = 'アイウエオカキクケコサシスセソ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ:・."=*+-<>';
+  let matrixDrops = [];
+
+  function initMatrix() {
+    const cols = Math.max(1, Math.floor(canvas.width / MATRIX_FONT_SIZE));
+    matrixDrops = Array.from({ length: cols }, () => Math.random() * -50);
+  }
+  initMatrix();
+
+  function drawMatrixRain() {
+    const [r, g, b] = accentRGB();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = `${MATRIX_FONT_SIZE}px monospace`;
+    let speedBoost = 1;
+    if (mode === 'local' && analyser && !audioEl.paused) {
+      analyser.getByteFrequencyData(dataArray);
+      speedBoost = 1 + (dataArray.reduce((a, v) => a + v, 0) / dataArray.length / 255) * 1.5;
+    }
+    for (let i = 0; i < matrixDrops.length; i++) {
+      const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+      const x = i * MATRIX_FONT_SIZE;
+      const y = matrixDrops[i] * MATRIX_FONT_SIZE;
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.75 + Math.random() * 0.25})`;
+      ctx.fillText(char, x, y);
+      if (y > canvas.height && Math.random() > 0.975) matrixDrops[i] = 0;
+      matrixDrops[i] += 0.6 * speedBoost;
+    }
+  }
 
   function drawAmbient(t) {
     const [r, g, b] = accentRGB();
@@ -511,13 +631,17 @@
   }
 
   function tick(t) {
-    const hasAudioData = mode === 'local' && analyser && !audioEl.paused;
-    if (hasAudioData) {
-      if (state.vizStyle === 'wave') drawWave();
-      else if (state.vizStyle === 'particles') drawParticlesReactive();
-      else drawBars();
+    if (state.vizStyle === 'matrix') {
+      drawMatrixRain();
     } else {
-      drawAmbient(t);
+      const hasAudioData = mode === 'local' && analyser && !audioEl.paused;
+      if (hasAudioData) {
+        if (state.vizStyle === 'wave') drawWave();
+        else if (state.vizStyle === 'particles') drawParticlesReactive();
+        else drawBars();
+      } else {
+        drawAmbient(t);
+      }
     }
     requestAnimationFrame(tick);
   }
@@ -549,6 +673,17 @@
       clockWidget.style.top = state.clockPos.top;
       clockWidget.style.right = 'auto';
     }
+
+    document.querySelectorAll('#bg-mode-row .chip').forEach((c) => {
+      c.classList.toggle('active', c.dataset.bgmode === state.bgMode);
+    });
+    document.querySelectorAll('#wallpaper-fit-row .chip').forEach((c) => {
+      c.classList.toggle('active', c.dataset.fit === state.wallpaperFit);
+    });
+    document.getElementById('wallpaper-dim').value = state.wallpaperDim;
+    document.getElementById('wallpaper-blur').value = state.wallpaperBlur;
+    document.getElementById('wallpaper-viz-toggle').checked = state.wallpaperShowViz;
+    applyBackgroundMode();
   }
 
   init();

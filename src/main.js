@@ -48,6 +48,18 @@ ipcMain.handle('pick-audio-files', async () => {
   return result.filePaths.map((p) => ({ path: p, name: path.basename(p) }));
 });
 
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+
+ipcMain.handle('pick-wallpaper-image', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose a wallpaper image',
+    properties: ['openFile'],
+    filters: [{ name: 'Images', extensions: IMAGE_EXTENSIONS }]
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  return { path: result.filePaths[0], name: path.basename(result.filePaths[0]) };
+});
+
 ipcMain.handle('pick-audio-folder', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Choose a music folder',
