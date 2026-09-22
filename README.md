@@ -49,7 +49,7 @@ xattr -cr /Applications/CodeVibe.app
 - **14 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker — plus a quick-pick accent color palette and full custom accent/background color pickers.
 - **Background modes** — **Dynamic Theme** (animated gradient/visualizer, with Gradient/Grid/Vignette/Noise background patterns) or **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
 - **Panel appearance** — adjustable blur and opacity for the glass-style sidebar and transport bar.
-- **Versioning & auto-update** — the current version is shown in the sidebar; packaged builds check GitHub Releases on startup via `electron-updater` and offer an in-app download-and-restart when a newer one is found.
+- **Versioning & auto-update** — the current version is shown in the sidebar, with a refresh button to check for updates on demand at any time; packaged builds also check GitHub Releases automatically on startup via `electron-updater`, and either way show an in-app banner to download and restart when a newer release is found.
 - Every setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlist, streaming history) persists between launches.
 
 ## Getting started
@@ -71,11 +71,11 @@ Requires [electron-builder](https://www.electron.build/); build on (or cross-com
 
 ## Releasing
 
-Pushing a version tag (e.g. `v1.1.1`, matching `package.json`'s `version`) triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS, and Linux in parallel on their native runners and publishes every installer — including a real macOS `.dmg` — plus the `electron-updater` metadata (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to a GitHub Release matching the tag:
+Pushing a version tag (e.g. `v1.3.1`, matching `package.json`'s `version`) triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS, and Linux in parallel on their native runners, publishes every installer — including a real macOS `.dmg` — plus the `electron-updater` metadata (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to a GitHub Release matching the tag, then a final job publishes that release (`electron-builder` creates it as a draft and only auto-publishes when a single process builds every platform, which isn't the case here since each OS runs as its own job):
 
 ```bash
-git tag v1.1.1
-git push origin v1.1.1
+git tag v1.3.1
+git push origin v1.3.1
 ```
 
 You can also trigger it manually from the Actions tab (`workflow_dispatch`), or build and publish a single platform locally:

@@ -1226,21 +1226,50 @@
       if (pendingAction) pendingAction();
     });
 
+    const checkBtn = document.getElementById('check-updates-btn');
+    let transientTimer = null;
+
+    function showTransient(text, ms) {
+      clearTimeout(transientTimer);
+      showBanner(text, null, null);
+      transientTimer = setTimeout(hideBanner, ms);
+    }
+
+    checkBtn.addEventListener('click', () => {
+      if (window.codevibe && window.codevibe.checkForUpdates) {
+        window.codevibe.checkForUpdates();
+      }
+    });
+
     if (!window.codevibe || !window.codevibe.onUpdateStatus) return;
 
     window.codevibe.onUpdateStatus((status) => {
-      if (status.state === 'available') {
+      clearTimeout(transientTimer);
+      if (status.state === 'checking') {
+        checkBtn.classList.add('spinning');
+        showTransient('Checking for updates…', 6000);
+      } else if (status.state === 'available') {
+        checkBtn.classList.remove('spinning');
         showBanner(`Update v${status.version} available`, 'Download', () => {
           showBanner(`Downloading v${status.version}…`, null, null);
           window.codevibe.downloadUpdate();
         });
       } else if (status.state === 'downloading') {
+        checkBtn.classList.remove('spinning');
         showBanner(`Downloading update… ${Math.round(status.percent || 0)}%`, null, null);
       } else if (status.state === 'downloaded') {
+        checkBtn.classList.remove('spinning');
         showBanner(`Update v${status.version} ready to install`, 'Restart & Install', () => {
           window.codevibe.quitAndInstall();
         });
+      } else if (status.state === 'up-to-date') {
+        checkBtn.classList.remove('spinning');
+        showTransient("You're on the latest version", 3000);
+      } else if (status.state === 'error') {
+        checkBtn.classList.remove('spinning');
+        showTransient(`Update check failed: ${status.message}`, 4000);
       } else {
+        checkBtn.classList.remove('spinning');
         hideBanner();
       }
     });
