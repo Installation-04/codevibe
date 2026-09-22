@@ -47,12 +47,17 @@
           <input id="stream-url" type="text" placeholder="Paste a music link…" />
           <button id="stream-load-btn" class="btn">Load</button>
         </div>
+        <p class="hint hint-error hidden" id="stream-error"></p>
+        <button id="stream-open-external-btn" class="btn btn-ghost hidden">Open in Browser Instead</button>
         <ul id="stream-history" class="track-list"></ul>
       </section>
 
       <section class="tab-panel" id="panel-theme">
         <h3>Presets</h3>
         <div id="preset-grid" class="preset-grid"></div>
+
+        <h3>Accent Presets</h3>
+        <div class="swatch-row" id="accent-swatch-row"></div>
 
         <h3>Custom Colors</h3>
         <div class="color-row">
@@ -74,12 +79,24 @@
           <button class="chip active-off" data-style="wave">Wave</button>
           <button class="chip active-off" data-style="particles">Particles</button>
           <button class="chip active-off" data-style="matrix">Matrix Rain</button>
+          <button class="chip active-off" data-style="radial">Radial Bars</button>
+          <button class="chip active-off" data-style="kaleidoscope">Kaleidoscope</button>
         </div>
 
         <h3>Background Mode</h3>
         <div class="chip-row" id="bg-mode-row">
           <button class="chip active" data-bgmode="dynamic">Dynamic Theme</button>
           <button class="chip active-off" data-bgmode="wallpaper">Wallpaper</button>
+        </div>
+
+        <div id="bg-pattern-controls">
+          <h3>Background Pattern</h3>
+          <div class="chip-row" id="bg-pattern-row">
+            <button class="chip active" data-pattern="gradient">Gradient</button>
+            <button class="chip active-off" data-pattern="grid">Grid</button>
+            <button class="chip active-off" data-pattern="vignette">Vignette</button>
+            <button class="chip active-off" data-pattern="noise">Noise</button>
+          </div>
         </div>
 
         <div id="wallpaper-controls" class="hidden">
@@ -106,6 +123,16 @@
           </label>
         </div>
 
+        <h3>Panel Appearance</h3>
+        <div class="slider-row">
+          <label for="panel-blur">Blur</label>
+          <input type="range" id="panel-blur" min="0" max="30" value="18" />
+        </div>
+        <div class="slider-row">
+          <label for="panel-opacity">Opacity</label>
+          <input type="range" id="panel-opacity" min="10" max="100" value="55" />
+        </div>
+
         <h3>Clock</h3>
         <label class="switch-row">
           <input type="checkbox" id="clock-toggle" checked />
@@ -119,17 +146,39 @@
           <input type="checkbox" id="seconds-toggle" checked />
           <span>Show seconds</span>
         </label>
+
+        <div class="chip-row" id="clock-style-row">
+          <button class="chip active" data-clockstyle="digital">Digital</button>
+          <button class="chip active-off" data-clockstyle="minimal">Minimal</button>
+          <button class="chip active-off" data-clockstyle="boxed">Boxed</button>
+          <button class="chip active-off" data-clockstyle="neon">Neon</button>
+          <button class="chip active-off" data-clockstyle="analog">Analog</button>
+        </div>
+
+        <div class="chip-row" id="clock-font-row">
+          <button class="chip active" data-clockfont="sans">Sans</button>
+          <button class="chip active-off" data-clockfont="serif">Serif</button>
+          <button class="chip active-off" data-clockfont="mono">Mono</button>
+          <button class="chip active-off" data-clockfont="display">Display</button>
+          <button class="chip active-off" data-clockfont="condensed">Condensed</button>
+        </div>
+
+        <div class="slider-row">
+          <label for="clock-size">Size</label>
+          <input type="range" id="clock-size" min="60" max="160" value="100" />
+        </div>
       </section>
     </aside>
 
     <main id="stage">
-      <div id="clock-widget" class="clock-widget">
+      <div id="clock-widget" class="clock-widget style-digital font-sans">
+        <canvas id="clock-analog" width="140" height="140"></canvas>
         <div id="clock-time">00:00</div>
         <div id="clock-date">Mon, Jan 1</div>
       </div>
 
       <div id="stream-frame-wrap" class="hidden">
-        <iframe id="stream-frame" allow="autoplay; encrypted-media; fullscreen" frameborder="0"></iframe>
+        <webview id="stream-frame" allowpopups webpreferences="autoplayPolicy=no-user-gesture-required"></webview>
       </div>
 
       <div id="now-playing" class="now-playing hidden">

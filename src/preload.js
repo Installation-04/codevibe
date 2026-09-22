@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('codevibe', {
   pickAudioFiles: () => ipcRenderer.invoke('pick-audio-files'),
   pickAudioFolder: () => ipcRenderer.invoke('pick-audio-folder'),
   pickWallpaperImage: () => ipcRenderer.invoke('pick-wallpaper-image'),
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
   platform: process.platform,
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
