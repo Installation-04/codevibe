@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: file: blob:; media-src 'self' file: blob: data:; img-src 'self' data: file: https:; frame-src https:; connect-src 'self' https:;" />
+<title>CodeVibe</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="lofi">
+  <div id="wallpaper-bg" class="hidden">
+    <div id="wallpaper-overlay"></div>
+  </div>
+  <div id="bg-glow"></div>
+  <canvas id="visualizer"></canvas>
+
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">CodeVibe</span>
+      </div>
+
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="library">Local Music</button>
+        <button class="tab-btn" data-tab="stream">Streaming Link</button>
+        <button class="tab-btn" data-tab="theme">Theme</button>
+      </nav>
+
+      <section class="tab-panel active" id="panel-library">
+        <div class="panel-actions">
+          <button id="add-files-btn" class="btn">Add Files</button>
+          <button id="add-folder-btn" class="btn btn-ghost">Add Folder</button>
+        </div>
+        <ul id="track-list" class="track-list"></ul>
+        <p class="hint" id="library-hint">Add local mp3, wav, flac, ogg, m4a, aac or opus files to start the visualizer.</p>
+      </section>
+
+      <section class="tab-panel" id="panel-stream">
+        <p class="hint">Paste a link from YouTube, Spotify, or SoundCloud. It will play in an embedded player alongside an ambient visualizer.</p>
+        <div class="stream-input-row">
+          <input id="stream-url" type="text" placeholder="Paste a music link…" />
+          <button id="stream-load-btn" class="btn">Load</button>
+        </div>
+        <ul id="stream-history" class="track-list"></ul>
+      </section>
+
+      <section class="tab-panel" id="panel-theme">
+        <h3>Presets</h3>
+        <div id="preset-grid" class="preset-grid"></div>
+
+        <h3>Custom Colors</h3>
+        <div class="color-row">
+          <label for="accent-color">Accent</label>
+          <input type="color" id="accent-color" value="#ff9f6e" />
+        </div>
+        <div class="color-row">
+          <label for="bg-color-1">Background A</label>
+          <input type="color" id="bg-color-1" value="#241726" />
+        </div>
+        <div class="color-row">
+          <label for="bg-color-2">Background B</label>
+          <input type="color" id="bg-color-2" value="#0d0714" />
+        </div>
+
+        <h3>Visualizer Style</h3>
+        <div class="chip-row" id="viz-style-row">
+          <button class="chip active" data-style="bars">Bars</button>
+          <button class="chip active-off" data-style="wave">Wave</button>
+          <button class="chip active-off" data-style="particles">Particles</button>
+          <button class="chip active-off" data-style="matrix">Matrix Rain</button>
+        </div>
+
+        <h3>Background Mode</h3>
+        <div class="chip-row" id="bg-mode-row">
+          <button class="chip active" data-bgmode="dynamic">Dynamic Theme</button>
+          <button class="chip active-off" data-bgmode="wallpaper">Wallpaper</button>
+        </div>
+
+        <div id="wallpaper-controls" class="hidden">
+          <div class="panel-actions">
+            <button id="choose-wallpaper-btn" class="btn">Choose Image</button>
+            <button id="clear-wallpaper-btn" class="btn btn-ghost">Clear</button>
+          </div>
+          <div class="chip-row" id="wallpaper-fit-row">
+            <button class="chip active" data-fit="cover">Cover</button>
+            <button class="chip active-off" data-fit="contain">Contain</button>
+            <button class="chip active-off" data-fit="tile">Tile</button>
+          </div>
+          <div class="slider-row">
+            <label for="wallpaper-dim">Dim</label>
+            <input type="range" id="wallpaper-dim" min="0" max="90" value="35" />
+          </div>
+          <div class="slider-row">
+            <label for="wallpaper-blur">Blur</label>
+            <input type="range" id="wallpaper-blur" min="0" max="20" value="0" />
+          </div>
+          <label class="switch-row">
+            <input type="checkbox" id="wallpaper-viz-toggle" checked />
+            <span>Show visualizer over wallpaper</span>
+          </label>
+        </div>
+
+        <h3>Clock</h3>
+        <label class="switch-row">
+          <input type="checkbox" id="clock-toggle" checked />
+          <span>Show clock overlay</span>
+        </label>
+        <div class="chip-row">
+          <button class="chip active" data-format="24">24h</button>
+          <button class="chip active-off" data-format="12">12h</button>
+        </div>
+        <label class="switch-row">
+          <input type="checkbox" id="seconds-toggle" checked />
+          <span>Show seconds</span>
+        </label>
+      </section>
+    </aside>
+
+    <main id="stage">
+      <div id="clock-widget" class="clock-widget">
+        <div id="clock-time">00:00</div>
+        <div id="clock-date">Mon, Jan 1</div>
+      </div>
+
+      <div id="stream-frame-wrap" class="hidden">
+        <iframe id="stream-frame" allow="autoplay; encrypted-media; fullscreen" frameborder="0"></iframe>
+      </div>
+
+      <div id="now-playing" class="now-playing hidden">
+        <div class="np-title" id="np-title">Nothing playing</div>
+        <div class="np-sub" id="np-sub">Add a track or streaming link to begin</div>
+      </div>
+
+      <div id="transport" class="transport">
+        <button id="prev-btn" class="icon-btn" title="Previous">⏮</button>
+        <button id="play-btn" class="icon-btn play" title="Play/Pause">▶</button>
+        <button id="next-btn" class="icon-btn" title="Next">⏭</button>
+        <input id="seek" type="range" min="0" max="100" value="0" />
+        <span id="time-display">0:00 / 0:00</span>
+        <input id="volume" type="range" min="0" max="100" value="70" title="Volume" />
+      </div>
+    </main>
+  </div>
+
+  <audio id="audio-el" crossorigin="anonymous"></audio>
+  <script src="app.js"></script>
+</body>
+</html>
