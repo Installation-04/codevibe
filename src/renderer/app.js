@@ -16,7 +16,8 @@
     retrogames:{ label: 'Retro Games',   bg1: '#101820', bg2: '#03060a', accent: '#ffd400' },
     sleek:     { label: 'Sleek',         bg1: '#14161a', bg2: '#050607', accent: '#5b8def' },
     minimalist:{ label: 'Minimalist',    bg1: '#111214', bg2: '#000000', accent: '#d8d8d8' },
-    vibecoding:{ label: 'VibeCoding',    bg1: '#1e1b4b', bg2: '#020617', accent: '#a78bfa' }
+    vibecoding:{ label: 'VibeCoding',    bg1: '#1e1b4b', bg2: '#020617', accent: '#a78bfa' },
+    hacker:    { label: 'Retro Hacker',  bg1: '#1a1400', bg2: '#000000', accent: '#ffb000', vizStyle: 'matrix' }
   };
 
   const defaultState = {
