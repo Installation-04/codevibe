@@ -41,13 +41,15 @@ xattr -cr /Applications/CodeVibe.app
 
 ## Features
 
-- **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus) and play them with a real audio-reactive visualizer (Bars / Wave / Particles / Matrix Rain), driven by the Web Audio API.
-- **Streaming links** — paste a YouTube, Spotify, or SoundCloud link and it loads in an embedded player alongside an ambient visualizer.
-- **Clock overlay** — a draggable on-screen clock with 12h/24h format and optional seconds, positioned anywhere on the stage.
-- **14 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker — plus custom accent and background color pickers.
-- **Background modes** — **Dynamic Theme** (the animated gradient/visualizer background) or **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
+- **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus) and play them with a real audio-reactive visualizer, driven by the Web Audio API.
+- **6 visualizer styles** — Bars, Wave, Particles, Matrix Rain, Radial Bars, and Kaleidoscope.
+- **Streaming links** — paste a YouTube, Spotify, or SoundCloud link and it plays in an embedded browser view alongside an ambient visualizer, with a one-click "Open in Browser Instead" fallback if a link can't be embedded (e.g. embedding disabled by the uploader).
+- **Clock overlay** — draggable, with 12h/24h format, optional seconds, 5 styles (Digital, Minimal, Boxed, Neon, Analog), 5 font families, and an adjustable size.
+- **14 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker — plus a quick-pick accent color palette and full custom accent/background color pickers.
+- **Background modes** — **Dynamic Theme** (animated gradient/visualizer, with Gradient/Grid/Vignette/Noise background patterns) or **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
+- **Panel appearance** — adjustable blur and opacity for the glass-style sidebar and transport bar.
 - **Versioning & auto-update** — the current version is shown in the sidebar; packaged builds check GitHub Releases on startup via `electron-updater` and offer an in-app download-and-restart when a newer one is found.
-- Every setting (theme, colors, visualizer style, background mode, wallpaper, clock preferences, playlist, streaming history) persists between launches.
+- Every setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlist, streaming history) persists between launches.
 
 ## Getting started
 
@@ -85,4 +87,4 @@ GH_TOKEN=<a token with repo scope> npm run dist:linux -- --publish always  # Lin
 
 ## Notes on streaming
 
-CodeVibe doesn't proxy or download audio from third-party platforms — it embeds their official web players (YouTube/Spotify/SoundCloud iframes), so playback follows each platform's own terms of service and requires an active account/subscription where applicable. The full audio-reactive visualizer is only available for local files, since embedded players don't expose raw audio data to the host page; streaming mode shows an ambient animation instead.
+CodeVibe doesn't proxy or download audio from third-party platforms — it embeds their official web players (YouTube/Spotify/SoundCloud) in an isolated browser view, so playback follows each platform's own terms of service and requires an active account/subscription where applicable. The full audio-reactive visualizer is only available for local files, since embedded players don't expose raw audio data to the host page; streaming mode shows an ambient animation instead. If a specific link won't embed (the uploader disabled embedding, or it's region-locked), CodeVibe shows an inline message and an "Open in Browser Instead" button.

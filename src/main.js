@@ -1,7 +1,11 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
+
+// Streaming embeds (YouTube/Spotify/SoundCloud) run inside a <webview> guest page;
+// autoplay there needs this switch set before the app is ready.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 let mainWindow;
 
@@ -17,7 +21,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      webviewTag: true
     }
   });
 
@@ -60,6 +65,12 @@ function setupAutoUpdates() {
 }
 
 ipcMain.handle('get-app-version', () => app.getVersion());
+
+ipcMain.handle('open-external', (event, url) => {
+  if (typeof url === 'string' && /^https?:\/\//.test(url)) {
+    shell.openExternal(url);
+  }
+});
 
 ipcMain.handle('check-for-updates', () => {
   if (!app.isPackaged) return { state: 'up-to-date' };
