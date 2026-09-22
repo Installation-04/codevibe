@@ -44,6 +44,7 @@ xattr -cr /Applications/CodeVibe.app
 - **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus) and play them with a real audio-reactive visualizer, driven by the Web Audio API.
 - **6 visualizer styles** — Bars, Wave, Particles, Matrix Rain, Radial Bars, and Kaleidoscope.
 - **Streaming links** — paste a YouTube, Spotify, or SoundCloud link and it plays in an embedded browser view alongside an ambient visualizer, with a one-click "Open in Browser Instead" fallback if a link can't be embedded (e.g. embedding disabled by the uploader).
+- **Jellyfin and Plex** — connect to your own media server (Jellyfin: server address + username/password; Plex: sign in through plex.tv, then point it at your server) and browse and play your library directly.
 - **Clock overlay** — draggable, with 12h/24h format, optional seconds, 5 styles (Digital, Minimal, Boxed, Neon, Analog), 5 font families, and an adjustable size.
 - **14 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker — plus a quick-pick accent color palette and full custom accent/background color pickers.
 - **Background modes** — **Dynamic Theme** (animated gradient/visualizer, with Gradient/Grid/Vignette/Noise background patterns) or **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
@@ -84,6 +85,14 @@ GH_TOKEN=<a token with repo scope> npm run dist:win -- --publish always     # Wi
 GH_TOKEN=<a token with repo scope> npm run dist:mac -- --publish always     # macOS, from macOS only
 GH_TOKEN=<a token with repo scope> npm run dist:linux -- --publish always  # Linux
 ```
+
+## Connecting Jellyfin / Plex
+
+- **Jellyfin**: open the Jellyfin tab, enter your server's address (e.g. `http://192.168.1.10:8096`) plus your username and password, and click Connect. Your library loads automatically.
+- **Plex**: open the Plex tab and click "Connect with Plex" — this opens plex.tv in your browser to sign in (no Plex developer account needed, the same PIN-based flow Plex's own apps use). Once signed in, enter your Plex Media Server's local address (e.g. `http://192.168.1.10:32400`) so CodeVibe knows where to fetch your library from.
+- Both connect directly from the app to your server — nothing is proxied through a third party. Credentials and tokens are stored locally the same way as your other settings.
+- Tracks played from either service skip the Web Audio analyser (so the visualizer falls back to its ambient animation for these, same as streaming links) — this is deliberate: requiring CORS mode for the audio element would make playback fail outright on servers that don't send `Access-Control-Allow-Origin` headers, and reliable playback matters more than a reactive visualizer here.
+- This integration talks to the standard Jellyfin and Plex HTTP APIs directly from the renderer and hasn't been exercised against a live server in this environment (no such server was available) — the connect/browse/play flow was verified end-to-end against mocked API responses. Please report any issues connecting to a real server.
 
 ## Notes on streaming
 
