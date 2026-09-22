@@ -7,6 +7,10 @@ contextBridge.exposeInMainWorld('codevibe', {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   platform: process.platform,
 
+  secureSet: (key, value) => ipcRenderer.invoke('secure-set', key, value),
+  secureGet: (key) => ipcRenderer.invoke('secure-get', key),
+  secureDelete: (key) => ipcRenderer.invoke('secure-delete', key),
+
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
