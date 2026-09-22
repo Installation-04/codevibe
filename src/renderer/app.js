@@ -505,6 +505,10 @@
   let audioCtx, analyser, sourceNode, dataArray;
   let particles = [];
 
+  const MATRIX_FONT_SIZE = 16;
+  const MATRIX_CHARS = 'アイウエオカキクケコサシスセソ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ:・."=*+-<>';
+  let matrixDrops = [];
+
   function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -541,10 +545,6 @@
     }));
   }
   initParticles();
-
-  const MATRIX_FONT_SIZE = 16;
-  const MATRIX_CHARS = 'アイウエオカキクケコサシスセソ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ:・."=*+-<>';
-  let matrixDrops = [];
 
   function initMatrix() {
     const cols = Math.max(1, Math.floor(canvas.width / MATRIX_FONT_SIZE));
