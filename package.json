@@ -1,9 +1,13 @@
 {
   "name": "codevibe",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "CodeVibe — a music vibe visualizer for coding, lofi, and ambiance music. Connect streaming links or play local music, with a clock overlay and customizable themes.",
   "main": "src/main.js",
-  "author": "CodeVibe",
+  "homepage": "https://github.com/Installation-04/codevibe",
+  "author": {
+    "name": "CodeVibe",
+    "email": "codevibe@users.noreply.github.com"
+  },
   "license": "MIT",
   "private": true,
   "scripts": {
