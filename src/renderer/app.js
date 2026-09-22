@@ -44,7 +44,15 @@
     panelOpacity: 55,
     clockStyle: 'digital',
     clockFont: 'sans',
-    clockSize: 100
+    clockSize: 100,
+    jellyfinDeviceId: null,
+    jellyfinServer: null,
+    jellyfinToken: null,
+    jellyfinUserId: null,
+    jellyfinUsername: null,
+    plexClientId: null,
+    plexToken: null,
+    plexServer: null
   };
 
   const ACCENT_SWATCHES = [
@@ -513,11 +521,15 @@
     }
   });
 
-  function switchToLocalMode() {
-    mode = 'local';
+  function hideStreamFrame() {
     document.getElementById('stream-frame-wrap').classList.add('hidden');
     document.getElementById('stream-frame').src = '';
     nowPlayingEl.classList.remove('hidden');
+  }
+
+  function switchToLocalMode() {
+    mode = 'local';
+    hideStreamFrame();
   }
 
   function playLocalTrack(i) {
@@ -525,6 +537,7 @@
     switchToLocalMode();
     currentIndex = i;
     const track = state.tracks[i];
+    audioEl.crossOrigin = 'anonymous';
     audioEl.src = 'file://' + track.path;
     audioEl.play().catch(() => {});
     npTitle.textContent = track.name;
@@ -544,7 +557,7 @@
   }
 
   playBtn.addEventListener('click', () => {
-    if (mode !== 'local') {
+    if (mode === 'idle' || mode === 'stream') {
       if (state.tracks.length) playLocalTrack(0);
       return;
     }
@@ -694,6 +707,291 @@
   document.getElementById('stream-url').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('stream-load-btn').click();
   });
+
+  // ---------- Shared helper for remote (Jellyfin/Plex) playback ----------
+  function playRemoteTrack(url, title, subtitle) {
+    mode = 'remote';
+    hideStreamFrame();
+    // Requesting these in CORS mode would fail outright on servers that don't send
+    // Access-Control-Allow-Origin headers; drop it so playback works regardless,
+    // trading away visualizer reactivity for these sources (same as streaming links).
+    audioEl.removeAttribute('crossorigin');
+    audioEl.crossOrigin = null;
+    audioEl.src = url;
+    audioEl.play().catch(() => {});
+    npTitle.textContent = title;
+    npSub.textContent = subtitle;
+  }
+
+  // ---------- Jellyfin ----------
+  const jellyfinConnectForm = document.getElementById('jellyfin-connect-form');
+  const jellyfinConnectedEl = document.getElementById('jellyfin-connected');
+  const jellyfinErrorEl = document.getElementById('jellyfin-error');
+  const jellyfinTrackListEl = document.getElementById('jellyfin-track-list');
+
+  function getJellyfinDeviceId() {
+    if (!state.jellyfinDeviceId) {
+      state.jellyfinDeviceId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `cv-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      saveState();
+    }
+    return state.jellyfinDeviceId;
+  }
+
+  function updateJellyfinUi() {
+    const connected = !!(state.jellyfinServer && state.jellyfinToken);
+    jellyfinConnectForm.classList.toggle('hidden', connected);
+    jellyfinConnectedEl.classList.toggle('hidden', !connected);
+    if (connected) {
+      document.getElementById('jellyfin-user-label').textContent = state.jellyfinUsername || 'user';
+    }
+  }
+
+  async function jellyfinFetch(path, options = {}) {
+    const res = await fetch(state.jellyfinServer + path, {
+      ...options,
+      headers: { 'X-Emby-Token': state.jellyfinToken, ...(options.headers || {}) }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function loadJellyfinTracks() {
+    if (!state.jellyfinServer || !state.jellyfinToken) return;
+    jellyfinTrackListEl.innerHTML = '<li class="hint">Loading…</li>';
+    try {
+      const data = await jellyfinFetch(`/Users/${state.jellyfinUserId}/Items?IncludeItemTypes=Audio&Recursive=true&SortBy=Album,SortName`);
+      renderJellyfinTracks(data.Items || []);
+    } catch (err) {
+      jellyfinTrackListEl.innerHTML = `<li class="hint hint-error">Couldn't load library: ${err.message}</li>`;
+    }
+  }
+
+  function renderJellyfinTracks(items) {
+    jellyfinTrackListEl.innerHTML = '';
+    if (!items.length) {
+      jellyfinTrackListEl.innerHTML = '<li class="hint">No audio items found on this server.</li>';
+      return;
+    }
+    items.forEach((item) => {
+      const li = document.createElement('li');
+      li.className = 'track-item';
+      const label = document.createElement('span');
+      label.textContent = item.Name + (item.AlbumArtist ? ` — ${item.AlbumArtist}` : '');
+      li.appendChild(label);
+      li.addEventListener('click', () => {
+        const url = `${state.jellyfinServer}/Audio/${item.Id}/stream?static=true&api_key=${encodeURIComponent(state.jellyfinToken)}`;
+        playRemoteTrack(url, item.Name, (item.AlbumArtist ? `${item.AlbumArtist} · ` : '') + 'Jellyfin');
+      });
+      jellyfinTrackListEl.appendChild(li);
+    });
+  }
+
+  document.getElementById('jellyfin-connect-btn').addEventListener('click', async () => {
+    const server = document.getElementById('jellyfin-server').value.trim().replace(/\/$/, '');
+    const username = document.getElementById('jellyfin-username').value.trim();
+    const password = document.getElementById('jellyfin-password').value;
+    jellyfinErrorEl.classList.add('hidden');
+    if (!server || !username) {
+      jellyfinErrorEl.textContent = 'Server address and username are required.';
+      jellyfinErrorEl.classList.remove('hidden');
+      return;
+    }
+    try {
+      const deviceId = getJellyfinDeviceId();
+      const res = await fetch(`${server}/Users/AuthenticateByName`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Emby-Authorization': `MediaBrowser Client="CodeVibe", Device="Desktop", DeviceId="${deviceId}", Version="1.0.0"`
+        },
+        body: JSON.stringify({ Username: username, Pw: password })
+      });
+      if (!res.ok) throw new Error(`login failed (HTTP ${res.status})`);
+      const data = await res.json();
+      state.jellyfinServer = server;
+      state.jellyfinToken = data.AccessToken;
+      state.jellyfinUserId = data.User.Id;
+      state.jellyfinUsername = data.User.Name;
+      saveState();
+      updateJellyfinUi();
+      loadJellyfinTracks();
+    } catch (err) {
+      jellyfinErrorEl.textContent = `Couldn't connect: ${err.message}`;
+      jellyfinErrorEl.classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('jellyfin-disconnect-btn').addEventListener('click', () => {
+    state.jellyfinServer = null;
+    state.jellyfinToken = null;
+    state.jellyfinUserId = null;
+    state.jellyfinUsername = null;
+    jellyfinTrackListEl.innerHTML = '';
+    saveState();
+    updateJellyfinUi();
+  });
+
+  document.getElementById('jellyfin-refresh-btn').addEventListener('click', loadJellyfinTracks);
+
+  // ---------- Plex ----------
+  const plexLoginForm = document.getElementById('plex-login-form');
+  const plexServerForm = document.getElementById('plex-server-form');
+  const plexConnectedEl = document.getElementById('plex-connected');
+  const plexLoginStatusEl = document.getElementById('plex-login-status');
+  const plexLoginErrorEl = document.getElementById('plex-login-error');
+  const plexServerErrorEl = document.getElementById('plex-server-error');
+  const plexTrackListEl = document.getElementById('plex-track-list');
+
+  function getPlexClientId() {
+    if (!state.plexClientId) {
+      state.plexClientId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `cv-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      saveState();
+    }
+    return state.plexClientId;
+  }
+
+  function updatePlexUi() {
+    const hasToken = !!state.plexToken;
+    const hasServer = !!state.plexServer;
+    plexLoginForm.classList.toggle('hidden', hasToken);
+    plexServerForm.classList.toggle('hidden', !hasToken || hasServer);
+    plexConnectedEl.classList.toggle('hidden', !(hasToken && hasServer));
+    if (hasToken && hasServer) {
+      document.getElementById('plex-server-label').textContent = state.plexServer;
+    }
+  }
+
+  document.getElementById('plex-login-btn').addEventListener('click', async () => {
+    plexLoginErrorEl.classList.add('hidden');
+    plexLoginStatusEl.textContent = 'Opening plex.tv to sign in…';
+    const clientId = getPlexClientId();
+    try {
+      const pinRes = await fetch('https://plex.tv/api/v2/pins?strong=true', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Plex-Client-Identifier': clientId,
+          'X-Plex-Product': 'CodeVibe'
+        }
+      });
+      if (!pinRes.ok) throw new Error(`HTTP ${pinRes.status}`);
+      const pin = await pinRes.json();
+
+      const authUrl = `https://app.plex.tv/auth#?clientID=${encodeURIComponent(clientId)}&code=${encodeURIComponent(pin.code)}&context%5Bdevice%5D%5Bproduct%5D=CodeVibe`;
+      if (window.codevibe && window.codevibe.openExternal) window.codevibe.openExternal(authUrl);
+
+      plexLoginStatusEl.textContent = 'Waiting for you to sign in in your browser…';
+      const token = await pollPlexPin(pin.id, clientId);
+      if (!token) {
+        plexLoginStatusEl.textContent = '';
+        plexLoginErrorEl.textContent = 'Sign-in timed out. Please try again.';
+        plexLoginErrorEl.classList.remove('hidden');
+        return;
+      }
+      state.plexToken = token;
+      saveState();
+      plexLoginStatusEl.textContent = '';
+      updatePlexUi();
+    } catch (err) {
+      plexLoginStatusEl.textContent = '';
+      plexLoginErrorEl.textContent = `Couldn't sign in: ${err.message}`;
+      plexLoginErrorEl.classList.remove('hidden');
+    }
+  });
+
+  async function pollPlexPin(pinId, clientId) {
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const res = await fetch(`https://plex.tv/api/v2/pins/${pinId}`, {
+        headers: { 'Accept': 'application/json', 'X-Plex-Client-Identifier': clientId }
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.authToken) return data.authToken;
+    }
+    return null;
+  }
+
+  document.getElementById('plex-server-btn').addEventListener('click', async () => {
+    const server = document.getElementById('plex-server').value.trim().replace(/\/$/, '');
+    plexServerErrorEl.classList.add('hidden');
+    if (!server) {
+      plexServerErrorEl.textContent = 'Server address is required.';
+      plexServerErrorEl.classList.remove('hidden');
+      return;
+    }
+    try {
+      const res = await fetch(`${server}/library/sections`, {
+        headers: { 'Accept': 'application/json', 'X-Plex-Token': state.plexToken }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      state.plexServer = server;
+      saveState();
+      updatePlexUi();
+      loadPlexTracks();
+    } catch (err) {
+      plexServerErrorEl.textContent = `Couldn't reach that server: ${err.message}`;
+      plexServerErrorEl.classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('plex-disconnect-btn').addEventListener('click', () => {
+    state.plexToken = null;
+    state.plexServer = null;
+    plexTrackListEl.innerHTML = '';
+    saveState();
+    updatePlexUi();
+  });
+
+  document.getElementById('plex-refresh-btn').addEventListener('click', loadPlexTracks);
+
+  async function loadPlexTracks() {
+    if (!state.plexServer || !state.plexToken) return;
+    plexTrackListEl.innerHTML = '<li class="hint">Loading…</li>';
+    try {
+      const sectionsRes = await fetch(`${state.plexServer}/library/sections`, {
+        headers: { 'Accept': 'application/json', 'X-Plex-Token': state.plexToken }
+      });
+      if (!sectionsRes.ok) throw new Error(`HTTP ${sectionsRes.status}`);
+      const sectionsData = await sectionsRes.json();
+      const musicSections = (sectionsData.MediaContainer.Directory || []).filter((d) => d.type === 'artist');
+
+      const allTracks = [];
+      for (const section of musicSections) {
+        const tracksRes = await fetch(`${state.plexServer}/library/sections/${section.key}/all?type=10`, {
+          headers: { 'Accept': 'application/json', 'X-Plex-Token': state.plexToken }
+        });
+        if (!tracksRes.ok) continue;
+        const tracksData = await tracksRes.json();
+        allTracks.push(...(tracksData.MediaContainer.Metadata || []));
+      }
+      renderPlexTracks(allTracks);
+    } catch (err) {
+      plexTrackListEl.innerHTML = `<li class="hint hint-error">Couldn't load library: ${err.message}</li>`;
+    }
+  }
+
+  function renderPlexTracks(items) {
+    plexTrackListEl.innerHTML = '';
+    if (!items.length) {
+      plexTrackListEl.innerHTML = '<li class="hint">No tracks found in your music libraries.</li>';
+      return;
+    }
+    items.forEach((item) => {
+      const part = item.Media && item.Media[0] && item.Media[0].Part && item.Media[0].Part[0];
+      if (!part) return;
+      const li = document.createElement('li');
+      li.className = 'track-item';
+      const label = document.createElement('span');
+      label.textContent = item.title + (item.grandparentTitle ? ` — ${item.grandparentTitle}` : '');
+      li.appendChild(label);
+      li.addEventListener('click', () => {
+        const url = `${state.plexServer}${part.key}?X-Plex-Token=${encodeURIComponent(state.plexToken)}`;
+        playRemoteTrack(url, item.title, (item.grandparentTitle ? `${item.grandparentTitle} · ` : '') + 'Plex');
+      });
+      plexTrackListEl.appendChild(li);
+    });
+  }
 
   // ---------- Audio-reactive visualizer ----------
   const canvas = document.getElementById('visualizer');
@@ -956,6 +1254,10 @@
     renderAccentSwatches();
     renderTrackList();
     renderStreamHistory();
+    updateJellyfinUi();
+    if (state.jellyfinServer && state.jellyfinToken) loadJellyfinTracks();
+    updatePlexUi();
+    if (state.plexServer && state.plexToken) loadPlexTracks();
 
     volumeEl.value = state.volume;
     audioEl.volume = state.volume / 100;

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: file: blob:; media-src 'self' file: blob: data:; img-src 'self' data: file: https:; frame-src https:; connect-src 'self' https:;" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: file: blob:; media-src 'self' file: blob: data: http: https:; img-src 'self' data: file: https:; frame-src https:; connect-src 'self' http: https:;" />
 <title>CodeVibe</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
@@ -29,6 +29,8 @@
       <nav class="tabs">
         <button class="tab-btn active" data-tab="library">Local Music</button>
         <button class="tab-btn" data-tab="stream">Streaming Link</button>
+        <button class="tab-btn" data-tab="jellyfin">Jellyfin</button>
+        <button class="tab-btn" data-tab="plex">Plex</button>
         <button class="tab-btn" data-tab="theme">Theme</button>
       </nav>
 
@@ -50,6 +52,52 @@
         <p class="hint hint-error hidden" id="stream-error"></p>
         <button id="stream-open-external-btn" class="btn btn-ghost hidden">Open in Browser Instead</button>
         <ul id="stream-history" class="track-list"></ul>
+      </section>
+
+      <section class="tab-panel" id="panel-jellyfin">
+        <div id="jellyfin-connect-form">
+          <p class="hint">Connect to your Jellyfin server to browse and play your library.</p>
+          <div class="field-group">
+            <input id="jellyfin-server" type="text" class="field-input" placeholder="http://192.168.1.10:8096" />
+            <input id="jellyfin-username" type="text" class="field-input" placeholder="Username" />
+            <input id="jellyfin-password" type="password" class="field-input" placeholder="Password" />
+          </div>
+          <button id="jellyfin-connect-btn" class="btn">Connect</button>
+          <p class="hint hint-error hidden" id="jellyfin-error"></p>
+        </div>
+        <div id="jellyfin-connected" class="hidden">
+          <p class="hint">Connected as <strong id="jellyfin-user-label"></strong></p>
+          <div class="panel-actions">
+            <button id="jellyfin-refresh-btn" class="btn btn-ghost">Refresh</button>
+            <button id="jellyfin-disconnect-btn" class="btn btn-ghost">Disconnect</button>
+          </div>
+          <ul id="jellyfin-track-list" class="track-list"></ul>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-plex">
+        <div id="plex-login-form">
+          <p class="hint">Sign in with your Plex account, then point CodeVibe at your server.</p>
+          <button id="plex-login-btn" class="btn">Connect with Plex</button>
+          <p class="hint" id="plex-login-status"></p>
+          <p class="hint hint-error hidden" id="plex-login-error"></p>
+        </div>
+        <div id="plex-server-form" class="hidden">
+          <p class="hint">Signed in to Plex. Enter your Plex Media Server's local address:</p>
+          <div class="field-group">
+            <input id="plex-server" type="text" class="field-input" placeholder="http://192.168.1.10:32400" />
+          </div>
+          <button id="plex-server-btn" class="btn">Connect to Server</button>
+          <p class="hint hint-error hidden" id="plex-server-error"></p>
+        </div>
+        <div id="plex-connected" class="hidden">
+          <p class="hint">Connected to <strong id="plex-server-label"></strong></p>
+          <div class="panel-actions">
+            <button id="plex-refresh-btn" class="btn btn-ghost">Refresh</button>
+            <button id="plex-disconnect-btn" class="btn btn-ghost">Disconnect</button>
+          </div>
+          <ul id="plex-track-list" class="track-list"></ul>
+        </div>
       </section>
 
       <section class="tab-panel" id="panel-theme">
