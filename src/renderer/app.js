@@ -73,8 +73,25 @@
     }
   }
 
+  // Jellyfin/Plex tokens are credentials, not settings — they're persisted
+  // separately via safeStorage (see loadSecureTokens/secureSet calls below)
+  // and deliberately excluded from the plain settings blob.
+  const SECURE_FIELDS = ['jellyfinToken', 'plexToken'];
+
   function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const persisted = { ...state };
+    SECURE_FIELDS.forEach((f) => delete persisted[f]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+  }
+
+  async function loadSecureTokens() {
+    if (!window.codevibe || !window.codevibe.secureGet) return;
+    const [jellyfinToken, plexToken] = await Promise.all([
+      window.codevibe.secureGet('jellyfinToken'),
+      window.codevibe.secureGet('plexToken')
+    ]);
+    if (jellyfinToken) state.jellyfinToken = jellyfinToken;
+    if (plexToken) state.plexToken = plexToken;
   }
 
   // ---------- Theme ----------
@@ -813,6 +830,7 @@
       state.jellyfinUserId = data.User.Id;
       state.jellyfinUsername = data.User.Name;
       saveState();
+      if (window.codevibe && window.codevibe.secureSet) window.codevibe.secureSet('jellyfinToken', data.AccessToken);
       updateJellyfinUi();
       loadJellyfinTracks();
     } catch (err) {
@@ -828,6 +846,7 @@
     state.jellyfinUsername = null;
     jellyfinTrackListEl.innerHTML = '';
     saveState();
+    if (window.codevibe && window.codevibe.secureDelete) window.codevibe.secureDelete('jellyfinToken');
     updateJellyfinUi();
   });
 
@@ -890,6 +909,7 @@
       }
       state.plexToken = token;
       saveState();
+      if (window.codevibe && window.codevibe.secureSet) window.codevibe.secureSet('plexToken', token);
       plexLoginStatusEl.textContent = '';
       updatePlexUi();
     } catch (err) {
@@ -940,6 +960,7 @@
     state.plexServer = null;
     plexTrackListEl.innerHTML = '';
     saveState();
+    if (window.codevibe && window.codevibe.secureDelete) window.codevibe.secureDelete('plexToken');
     updatePlexUi();
   });
 
@@ -1276,13 +1297,15 @@
   }
 
   // ---------- Init ----------
-  function init() {
+  async function init() {
     applyTheme();
     renderPresetGrid();
     syncColorInputs();
     renderAccentSwatches();
     renderTrackList();
     renderStreamHistory();
+
+    await loadSecureTokens();
     updateJellyfinUi();
     if (state.jellyfinServer && state.jellyfinToken) loadJellyfinTracks();
     updatePlexUi();

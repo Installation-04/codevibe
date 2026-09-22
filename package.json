@@ -1,6 +1,6 @@
 {
   "name": "codevibe",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "CodeVibe — a music vibe visualizer for coding, lofi, and ambiance music. Connect streaming links or play local music, with a clock overlay and customizable themes.",
   "main": "src/main.js",
   "homepage": "https://github.com/Installation-04/codevibe",
@@ -15,14 +15,16 @@
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "test:smoke": "node tests/smoke.js"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^31.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "playwright": "^1.63.0"
   },
   "build": {
     "appId": "com.codevibe.app",
@@ -37,14 +39,23 @@
       "repo": "codevibe"
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.music"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "AudioVideo"
     }
   }
