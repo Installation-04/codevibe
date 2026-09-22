@@ -654,6 +654,54 @@
   }
   requestAnimationFrame(tick);
 
+  // ---------- App version & auto-update ----------
+  function initUpdater() {
+    const versionEl = document.getElementById('app-version');
+    if (window.codevibe && window.codevibe.getAppVersion) {
+      window.codevibe.getAppVersion().then((v) => { versionEl.textContent = 'v' + v; });
+    }
+
+    const banner = document.getElementById('update-banner');
+    const bannerText = document.getElementById('update-banner-text');
+    const bannerBtn = document.getElementById('update-banner-btn');
+    let pendingAction = null;
+
+    function showBanner(text, btnLabel, action) {
+      bannerText.textContent = text;
+      bannerBtn.textContent = btnLabel;
+      bannerBtn.classList.toggle('hidden', !btnLabel);
+      pendingAction = action;
+      banner.classList.remove('hidden');
+    }
+    function hideBanner() {
+      banner.classList.add('hidden');
+      pendingAction = null;
+    }
+
+    bannerBtn.addEventListener('click', () => {
+      if (pendingAction) pendingAction();
+    });
+
+    if (!window.codevibe || !window.codevibe.onUpdateStatus) return;
+
+    window.codevibe.onUpdateStatus((status) => {
+      if (status.state === 'available') {
+        showBanner(`Update v${status.version} available`, 'Download', () => {
+          showBanner(`Downloading v${status.version}…`, null, null);
+          window.codevibe.downloadUpdate();
+        });
+      } else if (status.state === 'downloading') {
+        showBanner(`Downloading update… ${Math.round(status.percent || 0)}%`, null, null);
+      } else if (status.state === 'downloaded') {
+        showBanner(`Update v${status.version} ready to install`, 'Restart & Install', () => {
+          window.codevibe.quitAndInstall();
+        });
+      } else {
+        hideBanner();
+      }
+    });
+  }
+
   // ---------- Init ----------
   function init() {
     applyTheme();
@@ -694,4 +742,5 @@
   }
 
   init();
+  initUpdater();
 })();
