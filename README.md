@@ -31,13 +31,20 @@ Requires [electron-builder](https://www.electron.build/); build on (or cross-com
 
 ## Releasing
 
-Each GitHub Release should carry the Windows, macOS, and Linux builds so `electron-updater` can find them:
+Pushing a version tag (e.g. `v1.1.0`, matching the `version` field in `package.json`) triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS, and Linux in parallel on their native runners and publishes every installer — including the macOS `.dmg`, which can only be built on an actual Mac — plus the `electron-updater` metadata (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to a GitHub Release matching the tag:
 
 ```bash
-GH_TOKEN=<a token with repo scope> npm run dist -- --publish always
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
-Run this on each target OS (or via CI matrix jobs) against the same tag; `electron-builder` uploads the installers plus the update metadata files (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to the release matching the `version` in `package.json`, creating it if needed.
+You can also trigger it manually from the Actions tab (`workflow_dispatch`). To build and publish a single platform locally instead:
+
+```bash
+GH_TOKEN=<a token with repo scope> npm run dist:win -- --publish always     # Windows, from Windows (or Linux/macOS + Wine)
+GH_TOKEN=<a token with repo scope> npm run dist:mac -- --publish always     # macOS, from macOS only
+GH_TOKEN=<a token with repo scope> npm run dist:linux -- --publish always  # Linux
+```
 
 ## Notes on streaming
 
