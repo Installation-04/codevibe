@@ -34,3 +34,25 @@ jobs:
       - run: ${{ matrix.script }} -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # electron-builder creates the GitHub release as a draft and only
+      # auto-publishes it when a single process builds every platform. Since
+      # our three platforms run as separate parallel jobs above, none of them
+      # individually finalizes it, so the release is left as a draft
+      # (invisible to normal downloads) unless we un-draft it here.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          gh release edit "v$VERSION" --draft=false --repo "${{ github.repository }}"
