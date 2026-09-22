@@ -10,6 +10,7 @@ A desktop music vibe visualizer for coding, lofi, and ambiance sessions. Runs cr
 - **Themes** — fourteen built-in presets (Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker) plus custom accent and background color pickers.
 - **Background modes** — switch between **Dynamic Theme** (the animated gradient/visualizer background) and **Wallpaper** (a custom image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
 - Settings (theme, colors, visualizer style, background mode, wallpaper, clock preferences, playlist, streaming history) persist between launches.
+- **Versioning & auto-update** — the current version is shown in the sidebar, and packaged builds check GitHub Releases on startup via `electron-updater`; when a newer release is found, an in-app banner lets you download and install it without leaving the app (only active in packaged builds, not `npm start`).
 
 ## Getting started
 
@@ -26,7 +27,17 @@ npm run dist:mac     # macOS (dmg + zip)
 npm run dist:linux   # Linux (AppImage + deb)
 ```
 
-Requires [electron-builder](https://www.electron.build/); build on (or cross-compile from) the target platform for best results.
+Requires [electron-builder](https://www.electron.build/); build on (or cross-compile from) the target platform for best results — in particular, a `.dmg` can only be built on macOS.
+
+## Releasing
+
+Each GitHub Release should carry the Windows, macOS, and Linux builds so `electron-updater` can find them:
+
+```bash
+GH_TOKEN=<a token with repo scope> npm run dist -- --publish always
+```
+
+Run this on each target OS (or via CI matrix jobs) against the same tag; `electron-builder` uploads the installers plus the update metadata files (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to the release matching the `version` in `package.json`, creating it if needed.
 
 ## Notes on streaming
 

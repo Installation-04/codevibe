@@ -95,6 +95,30 @@ body {
   font-size: 18px;
   letter-spacing: 0.5px;
 }
+.brand-version {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  font-size: 12px;
+}
+.update-banner .btn {
+  padding: 5px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+}
 
 .tabs {
   display: flex;
