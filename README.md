@@ -25,6 +25,20 @@ Grab the latest build for your OS from the [**Releases page**](https://github.co
 
 Only Apple Silicon macOS builds are published right now — Intel Mac support would need an `x64`/universal target added to the mac build. Once installed, CodeVibe checks for new releases on startup and offers an in-app update.
 
+### macOS: "malicious software" / unverified developer warning
+
+macOS Gatekeeper will warn about **any** app that isn't signed with a paid Apple Developer certificate and notarized by Apple — this build currently isn't, so the warning is expected and doesn't mean the app is actually malicious. To open it anyway:
+
+1. Try double-clicking CodeVibe once (it'll refuse and show the warning) — this registers it with Gatekeeper.
+2. Open **System Settings → Privacy & Security**, scroll down to the Security section, and click **Open Anyway** next to the CodeVibe message.
+3. Confirm **Open** in the dialog that appears. You only need to do this once per download.
+
+Alternatively, from Terminal, clear the quarantine flag before first launch:
+
+```bash
+xattr -cr /Applications/CodeVibe.app
+```
+
 ## Features
 
 - **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus) and play them with a real audio-reactive visualizer (Bars / Wave / Particles / Matrix Rain), driven by the Web Audio API.
