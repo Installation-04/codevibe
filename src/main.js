@@ -73,7 +73,12 @@ ipcMain.handle('open-external', (event, url) => {
 });
 
 ipcMain.handle('check-for-updates', () => {
-  if (!app.isPackaged) return { state: 'up-to-date' };
+  if (!app.isPackaged) {
+    const status = { state: 'up-to-date' };
+    sendUpdateStatus(status);
+    return status;
+  }
+  // autoUpdater fires its own 'checking-for-update' event, so no need to send one here.
   return autoUpdater.checkForUpdates().catch((err) => sendUpdateStatus({ state: 'error', message: err.message }));
 });
 
