@@ -34,12 +34,24 @@
     tracks: [],
     streamHistory: [],
     bgMode: 'dynamic',
+    bgPattern: 'gradient',
     wallpaperPath: null,
     wallpaperFit: 'cover',
     wallpaperDim: 35,
     wallpaperBlur: 0,
-    wallpaperShowViz: true
+    wallpaperShowViz: true,
+    panelBlur: 18,
+    panelOpacity: 55,
+    clockStyle: 'digital',
+    clockFont: 'sans',
+    clockSize: 100
   };
+
+  const ACCENT_SWATCHES = [
+    '#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#38d9a9',
+    '#22b8cf', '#4dabf7', '#748ffc', '#9775fa', '#f783ac',
+    '#ffffff', '#00ff41'
+  ];
 
   let state = loadState();
 
@@ -101,6 +113,7 @@
         applyTheme();
         renderPresetGrid();
         syncColorInputs();
+        renderAccentSwatches();
         saveState();
       });
       grid.appendChild(card);
@@ -114,9 +127,31 @@
     document.getElementById('bg-color-2').value = state.customBg2 || preset.bg2;
   }
 
+  function renderAccentSwatches() {
+    const row = document.getElementById('accent-swatch-row');
+    row.innerHTML = '';
+    const preset = THEMES[state.theme] || THEMES.lofi;
+    const current = state.customAccent || preset.accent;
+    ACCENT_SWATCHES.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (current.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.title = hex;
+      sw.addEventListener('click', () => {
+        state.customAccent = hex;
+        applyTheme();
+        renderAccentSwatches();
+        syncColorInputs();
+        saveState();
+      });
+      row.appendChild(sw);
+    });
+  }
+
   document.getElementById('accent-color').addEventListener('input', (e) => {
     state.customAccent = e.target.value;
     applyTheme();
+    renderAccentSwatches();
     saveState();
   });
   document.getElementById('bg-color-1').addEventListener('input', (e) => {
@@ -156,6 +191,8 @@
   const clockDateEl = document.getElementById('clock-date');
   const clockToggle = document.getElementById('clock-toggle');
   const secondsToggle = document.getElementById('seconds-toggle');
+  const clockAnalogCanvas = document.getElementById('clock-analog');
+  const clockAnalogCtx = clockAnalogCanvas.getContext('2d');
 
   function updateClock() {
     const now = new Date();
@@ -172,6 +209,7 @@
     clockDateEl.textContent = now.toLocaleDateString(undefined, {
       weekday: 'short', month: 'short', day: 'numeric'
     });
+    drawAnalogClock();
   }
   setInterval(updateClock, 1000);
   updateClock();
@@ -192,6 +230,99 @@
       state.clockFormat = chip.dataset.format;
       saveState();
     });
+  });
+
+  const CLOCK_STYLES = ['digital', 'minimal', 'boxed', 'neon', 'analog'];
+  const CLOCK_FONTS = ['sans', 'serif', 'mono', 'display', 'condensed'];
+
+  function applyClockAppearance() {
+    CLOCK_STYLES.forEach((s) => clockWidget.classList.remove('style-' + s));
+    clockWidget.classList.add('style-' + state.clockStyle);
+    CLOCK_FONTS.forEach((f) => clockWidget.classList.remove('font-' + f));
+    clockWidget.classList.add('font-' + state.clockFont);
+    clockWidget.style.setProperty('--clock-scale', state.clockSize / 100);
+  }
+
+  function drawAnalogClock() {
+    if (state.clockStyle !== 'analog') return;
+    const now = new Date();
+    const size = clockAnalogCanvas.width;
+    const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+    const [ar, ag, ab] = accentRGB();
+    const accentColor = `rgb(${ar}, ${ag}, ${ab})`;
+
+    clockAnalogCtx.clearRect(0, 0, size, size);
+
+    clockAnalogCtx.beginPath();
+    clockAnalogCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    clockAnalogCtx.strokeStyle = accentColor;
+    clockAnalogCtx.lineWidth = 2;
+    clockAnalogCtx.stroke();
+
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const inner = r - 8;
+      clockAnalogCtx.beginPath();
+      clockAnalogCtx.moveTo(cx + Math.sin(angle) * inner, cy - Math.cos(angle) * inner);
+      clockAnalogCtx.lineTo(cx + Math.sin(angle) * r, cy - Math.cos(angle) * r);
+      clockAnalogCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+      clockAnalogCtx.lineWidth = 2;
+      clockAnalogCtx.stroke();
+    }
+
+    const hours = now.getHours() % 12;
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+
+    const hourAngle = ((hours + minutes / 60) / 12) * Math.PI * 2;
+    const minuteAngle = ((minutes + seconds / 60) / 60) * Math.PI * 2;
+    const secondAngle = (seconds / 60) * Math.PI * 2;
+
+    drawHand(hourAngle, r * 0.5, 4, 'rgba(255,255,255,0.9)');
+    drawHand(minuteAngle, r * 0.72, 3, 'rgba(255,255,255,0.75)');
+    if (state.clockSeconds) drawHand(secondAngle, r * 0.8, 1.5, accentColor);
+
+    clockAnalogCtx.beginPath();
+    clockAnalogCtx.arc(cx, cy, 3, 0, Math.PI * 2);
+    clockAnalogCtx.fillStyle = accentColor;
+    clockAnalogCtx.fill();
+
+    function drawHand(angle, length, width, color) {
+      clockAnalogCtx.beginPath();
+      clockAnalogCtx.moveTo(cx, cy);
+      clockAnalogCtx.lineTo(cx + Math.sin(angle) * length, cy - Math.cos(angle) * length);
+      clockAnalogCtx.strokeStyle = color;
+      clockAnalogCtx.lineWidth = width;
+      clockAnalogCtx.lineCap = 'round';
+      clockAnalogCtx.stroke();
+    }
+  }
+
+  document.querySelectorAll('#clock-style-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#clock-style-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.clockStyle = chip.dataset.clockstyle;
+      applyClockAppearance();
+      drawAnalogClock();
+      saveState();
+    });
+  });
+
+  document.querySelectorAll('#clock-font-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#clock-font-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.clockFont = chip.dataset.clockfont;
+      applyClockAppearance();
+      saveState();
+    });
+  });
+
+  document.getElementById('clock-size').addEventListener('input', (e) => {
+    state.clockSize = Number(e.target.value);
+    applyClockAppearance();
+    saveState();
   });
 
   // Draggable clock
@@ -249,6 +380,38 @@
       applyBackgroundMode();
       saveState();
     });
+  });
+
+  function applyBackgroundPattern() {
+    const bgGlow = document.getElementById('bg-glow');
+    bgGlow.classList.remove('pattern-grid', 'pattern-vignette', 'pattern-noise');
+    if (state.bgPattern !== 'gradient') bgGlow.classList.add('pattern-' + state.bgPattern);
+  }
+
+  document.querySelectorAll('#bg-pattern-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#bg-pattern-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.bgPattern = chip.dataset.pattern;
+      applyBackgroundPattern();
+      saveState();
+    });
+  });
+
+  function applyPanelAppearance() {
+    document.body.style.setProperty('--panel-blur', state.panelBlur + 'px');
+    document.body.style.setProperty('--panel-opacity', state.panelOpacity / 100);
+  }
+
+  document.getElementById('panel-blur').addEventListener('input', (e) => {
+    state.panelBlur = Number(e.target.value);
+    applyPanelAppearance();
+    saveState();
+  });
+  document.getElementById('panel-opacity').addEventListener('input', (e) => {
+    state.panelOpacity = Number(e.target.value);
+    applyPanelAppearance();
+    saveState();
   });
 
   document.getElementById('choose-wallpaper-btn').addEventListener('click', async () => {
@@ -438,6 +601,10 @@
       const id = url.searchParams.get('v');
       const list = url.searchParams.get('list');
       if (id) return `https://www.youtube.com/embed/${id}${list ? '?list=' + list : ''}`;
+      if (url.pathname.startsWith('/shorts/')) {
+        const shortId = url.pathname.split('/')[2];
+        if (shortId) return `https://www.youtube.com/embed/${shortId}`;
+      }
       if (url.pathname.startsWith('/playlist') && list) return `https://www.youtube.com/embed/videoseries?list=${list}`;
       return null;
     }
@@ -456,6 +623,21 @@
     return null;
   }
 
+  const streamErrorEl = document.getElementById('stream-error');
+  const streamOpenExternalBtn = document.getElementById('stream-open-external-btn');
+  let lastStreamRaw = null;
+
+  function showStreamError(message) {
+    streamErrorEl.textContent = message;
+    streamErrorEl.classList.remove('hidden');
+    streamOpenExternalBtn.classList.remove('hidden');
+  }
+
+  function hideStreamError() {
+    streamErrorEl.classList.add('hidden');
+    streamOpenExternalBtn.classList.add('hidden');
+  }
+
   function loadStreamUrl(raw) {
     const embed = buildEmbedUrl(raw);
     if (!embed) {
@@ -463,6 +645,8 @@
       return;
     }
     mode = 'stream';
+    lastStreamRaw = raw;
+    hideStreamError();
     audioEl.pause();
     streamFrame.src = embed;
     streamFrameWrap.classList.remove('hidden');
@@ -477,6 +661,18 @@
       renderStreamHistory();
     }
   }
+
+  streamFrame.addEventListener('did-fail-load', (e) => {
+    if (mode !== 'stream' || !lastStreamRaw) return;
+    if (e.errorCode === -3) return; // ERR_ABORTED, usually just a redirect/navigation, not a real failure
+    showStreamError("This link didn't load — the video/track owner may have disabled embedding, or it may be region-locked.");
+  });
+
+  streamOpenExternalBtn.addEventListener('click', () => {
+    if (lastStreamRaw && window.codevibe && window.codevibe.openExternal) {
+      window.codevibe.openExternal(lastStreamRaw);
+    }
+  });
 
   function renderStreamHistory() {
     streamHistoryEl.innerHTML = '';
@@ -637,6 +833,54 @@
     });
   }
 
+  function drawRadialBars() {
+    analyser.getByteFrequencyData(dataArray);
+    const [r, g, b] = accentRGB();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const baseRadius = Math.min(canvas.width, canvas.height) * 0.15;
+    const barCount = dataArray.length;
+    for (let i = 0; i < barCount; i++) {
+      const v = dataArray[i] / 255;
+      const angle = (i / barCount) * Math.PI * 2;
+      const len = v * Math.min(canvas.width, canvas.height) * 0.35;
+      const x1 = cx + Math.cos(angle) * baseRadius;
+      const y1 = cy + Math.sin(angle) * baseRadius;
+      const x2 = cx + Math.cos(angle) * (baseRadius + len);
+      const y2 = cy + Math.sin(angle) * (baseRadius + len);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.3 + v * 0.6})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  }
+
+  function drawKaleidoscope() {
+    analyser.getByteFrequencyData(dataArray);
+    const [r, g, b] = accentRGB();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const segments = 8;
+    const maxRadius = Math.min(canvas.width, canvas.height) * 0.48;
+    for (let i = 0; i < dataArray.length; i += 2) {
+      const v = dataArray[i] / 255;
+      const radius = (i / dataArray.length) * maxRadius;
+      const size = 2 + v * 10;
+      for (let s = 0; s < segments; s++) {
+        const angle = (s / segments) * Math.PI * 2 + (Date.now() / 4000);
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * radius;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.2 + v * 0.6})`;
+        ctx.fill();
+      }
+    }
+  }
+
   function tick(t) {
     if (state.vizStyle === 'matrix') {
       drawMatrixRain();
@@ -645,6 +889,8 @@
       if (hasAudioData) {
         if (state.vizStyle === 'wave') drawWave();
         else if (state.vizStyle === 'particles') drawParticlesReactive();
+        else if (state.vizStyle === 'radial') drawRadialBars();
+        else if (state.vizStyle === 'kaleidoscope') drawKaleidoscope();
         else drawBars();
       } else {
         drawAmbient(t);
@@ -707,6 +953,7 @@
     applyTheme();
     renderPresetGrid();
     syncColorInputs();
+    renderAccentSwatches();
     renderTrackList();
     renderStreamHistory();
 
@@ -739,6 +986,24 @@
     document.getElementById('wallpaper-blur').value = state.wallpaperBlur;
     document.getElementById('wallpaper-viz-toggle').checked = state.wallpaperShowViz;
     applyBackgroundMode();
+
+    document.querySelectorAll('#bg-pattern-row .chip').forEach((c) => {
+      c.classList.toggle('active', c.dataset.pattern === state.bgPattern);
+    });
+    applyBackgroundPattern();
+
+    document.getElementById('panel-blur').value = state.panelBlur;
+    document.getElementById('panel-opacity').value = state.panelOpacity;
+    applyPanelAppearance();
+
+    document.querySelectorAll('#clock-style-row .chip').forEach((c) => {
+      c.classList.toggle('active', c.dataset.clockstyle === state.clockStyle);
+    });
+    document.querySelectorAll('#clock-font-row .chip').forEach((c) => {
+      c.classList.toggle('active', c.dataset.clockfont === state.clockFont);
+    });
+    document.getElementById('clock-size').value = state.clockSize;
+    applyClockAppearance();
   }
 
   init();
