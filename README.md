@@ -10,6 +10,21 @@ A desktop music vibe visualizer for coding, lofi, and ambiance sessions — loca
 | --- | --- | --- |
 | ![Lofi Sunset theme with the ambient particle visualizer](docs/screenshots/lofi-home.png) | ![Matrix theme with the Matrix Rain visualizer and the full theme picker](docs/screenshots/matrix-theme.png) | ![Cyberpunk theme with a custom wallpaper background and the particle visualizer overlaid](docs/screenshots/wallpaper-cyberpunk.png) |
 
+## Download
+
+Grab the latest build for your OS from the [**Releases page**](https://github.com/Installation-04/codevibe/releases/latest):
+
+| Platform | File to download | Notes |
+| --- | --- | --- |
+| 🪟 Windows | **`CodeVibe-Setup-<version>.exe`** | Standard installer — adds a Start Menu entry and auto-updates in place. Recommended for most people. |
+| 🪟 Windows (no install) | `CodeVibe-<version>.exe` | Portable build — runs directly, no installer, nothing written outside its own folder. |
+| 🍎 macOS (Apple Silicon) | **`CodeVibe-<version>-arm64.dmg`** | For M1/M2/M3/M4 Macs. Open the `.dmg` and drag CodeVibe into Applications. |
+| 🍎 macOS (alternative) | `CodeVibe-<version>-arm64-mac.zip` | Same Apple Silicon build as a plain `.zip`, if you'd rather not mount a `.dmg`. |
+| 🐧 Linux (most distros) | **`CodeVibe-<version>.AppImage`** | Portable — `chmod +x` it and run, no installation or package manager needed. |
+| 🐧 Linux (Debian/Ubuntu) | `codevibe_<version>_amd64.deb` | Installs via `sudo apt install ./codevibe_<version>_amd64.deb` and integrates with your app menu. |
+
+Only Apple Silicon macOS builds are published right now — Intel Mac support would need an `x64`/universal target added to the mac build. Once installed, CodeVibe checks for new releases on startup and offers an in-app update.
+
 ## Features
 
 - **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus) and play them with a real audio-reactive visualizer (Bars / Wave / Particles / Matrix Rain), driven by the Web Audio API.
@@ -39,11 +54,11 @@ Requires [electron-builder](https://www.electron.build/); build on (or cross-com
 
 ## Releasing
 
-Pushing a version tag (e.g. `v1.1.0`, matching `package.json`'s `version`) triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS, and Linux in parallel on their native runners and publishes every installer — including a real macOS `.dmg` — plus the `electron-updater` metadata (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to a GitHub Release matching the tag:
+Pushing a version tag (e.g. `v1.1.1`, matching `package.json`'s `version`) triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS, and Linux in parallel on their native runners and publishes every installer — including a real macOS `.dmg` — plus the `electron-updater` metadata (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to a GitHub Release matching the tag:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
 You can also trigger it manually from the Actions tab (`workflow_dispatch`), or build and publish a single platform locally:
