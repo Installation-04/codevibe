@@ -7,7 +7,7 @@ A desktop music vibe visualizer for coding, lofi, and ambiance sessions. Runs cr
 - **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus) and play them with a real audio-reactive visualizer (bars / wave / particles / Matrix rain), driven by the Web Audio API.
 - **Streaming links** — paste a YouTube, Spotify, or SoundCloud link and it loads in an embedded player alongside an ambient visualizer.
 - **Clock overlay** — a draggable on-screen clock with 12h/24h format and optional seconds, positioned anywhere on the stage.
-- **Themes** — seven built-in presets (Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix) plus custom accent and background color pickers.
+- **Themes** — thirteen built-in presets (Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding) plus custom accent and background color pickers.
 - **Background modes** — switch between **Dynamic Theme** (the animated gradient/visualizer background) and **Wallpaper** (a custom image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
 - Settings (theme, colors, visualizer style, background mode, wallpaper, clock preferences, playlist, streaming history) persist between launches.
 

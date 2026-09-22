@@ -10,7 +10,13 @@
     midnight:  { label: 'Midnight Focus',bg1: '#0b1220', bg2: '#02030a', accent: '#5fb4ff' },
     codefi:    { label: 'Codefi Neon',   bg1: '#0a0f12', bg2: '#020404', accent: '#39ff9c' },
     rain:      { label: 'Rainy Night',   bg1: '#151b26', bg2: '#05070c', accent: '#8ea9c9' },
-    matrix:    { label: 'Matrix',        bg1: '#001904', bg2: '#000000', accent: '#00ff41', vizStyle: 'matrix' }
+    matrix:    { label: 'Matrix',        bg1: '#001904', bg2: '#000000', accent: '#00ff41', vizStyle: 'matrix' },
+    cyberpunk: { label: 'Cyberpunk',     bg1: '#150826', bg2: '#050014', accent: '#00e5ff' },
+    retrocyber:{ label: 'Retro Cyberpunk', bg1: '#2b0a3d', bg2: '#0a0014', accent: '#ff2079' },
+    retrogames:{ label: 'Retro Games',   bg1: '#101820', bg2: '#03060a', accent: '#ffd400' },
+    sleek:     { label: 'Sleek',         bg1: '#14161a', bg2: '#050607', accent: '#5b8def' },
+    minimalist:{ label: 'Minimalist',    bg1: '#111214', bg2: '#000000', accent: '#d8d8d8' },
+    vibecoding:{ label: 'VibeCoding',    bg1: '#1e1b4b', bg2: '#020617', accent: '#a78bfa' }
   };
 
   const defaultState = {
