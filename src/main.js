@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, safeStorage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -28,6 +28,23 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   Menu.setApplicationMenu(null);
+
+  // Deny any attempt (from the main page or an embedded <webview> guest) to spawn
+  // a new native window — e.g. an ad popup inside a YouTube/Spotify embed.
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+  // The app never legitimately navigates its main window away from its own local
+  // page; refuse anything else as defense in depth.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) event.preventDefault();
+  });
+
+  // Belt-and-suspenders: the <webview> guest (YouTube/Spotify/SoundCloud embeds)
+  // has its own separate WebContents, so deny popups there too even though the
+  // `allowpopups` attribute is already off in the HTML.
+  mainWindow.webContents.on('did-attach-webview', (event, webContents) => {
+    webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  });
 }
 
 app.whenReady().then(() => {
@@ -70,6 +87,51 @@ ipcMain.handle('open-external', (event, url) => {
   if (typeof url === 'string' && /^https?:\/\//.test(url)) {
     shell.openExternal(url);
   }
+});
+
+// Encrypted-at-rest storage for credentials (Jellyfin/Plex tokens) via
+// Electron's safeStorage (OS keychain/DPAPI/libsecret), instead of the plain
+// localStorage blob the rest of the app's settings live in.
+const SECURE_STORE_PATH = path.join(app.getPath('userData'), 'secure-store.json');
+
+function readSecureStoreFile() {
+  try {
+    return JSON.parse(fs.readFileSync(SECURE_STORE_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeSecureStoreFile(store) {
+  fs.writeFileSync(SECURE_STORE_PATH, JSON.stringify(store), { mode: 0o600 });
+}
+
+ipcMain.handle('secure-set', (event, key, value) => {
+  if (typeof key !== 'string' || typeof value !== 'string') return;
+  const store = readSecureStoreFile();
+  store[key] = safeStorage.isEncryptionAvailable()
+    ? { enc: true, data: safeStorage.encryptString(value).toString('base64') }
+    : { enc: false, data: value };
+  writeSecureStoreFile(store);
+});
+
+ipcMain.handle('secure-get', (event, key) => {
+  if (typeof key !== 'string') return null;
+  const entry = readSecureStoreFile()[key];
+  if (!entry) return null;
+  if (!entry.enc) return entry.data;
+  try {
+    return safeStorage.decryptString(Buffer.from(entry.data, 'base64'));
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('secure-delete', (event, key) => {
+  if (typeof key !== 'string') return;
+  const store = readSecureStoreFile();
+  delete store[key];
+  writeSecureStoreFile(store);
 });
 
 ipcMain.handle('check-for-updates', () => {

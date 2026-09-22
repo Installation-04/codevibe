@@ -59,6 +59,15 @@ npm install
 npm start
 ```
 
+## Testing
+
+```bash
+npx playwright install chromium   # once, to download the test browser
+npm run test:smoke
+```
+
+Runs a headless UI regression suite (`tests/smoke.js`) against the renderer: it checks that every theme/visualizer/clock control renders and wires up correctly, and exercises the full Jellyfin and Plex connect → browse → play flows against mocked servers. This is the same check that runs in CI on every push and pull request.
+
 ## Building installers
 
 ```bash
@@ -90,7 +99,7 @@ GH_TOKEN=<a token with repo scope> npm run dist:linux -- --publish always  # Lin
 
 - **Jellyfin**: open the Jellyfin tab, enter your server's address (e.g. `http://192.168.1.10:8096`) plus your username and password, and click Connect. Your library loads automatically.
 - **Plex**: open the Plex tab and click "Connect with Plex" — this opens plex.tv in your browser to sign in (no Plex developer account needed, the same PIN-based flow Plex's own apps use). Once signed in, enter your Plex Media Server's local address (e.g. `http://192.168.1.10:32400`) so CodeVibe knows where to fetch your library from.
-- Both connect directly from the app to your server — nothing is proxied through a third party. Credentials and tokens are stored locally the same way as your other settings.
+- Both connect directly from the app to your server — nothing is proxied through a third party. Server addresses and usernames are stored locally like your other settings; auth tokens are stored separately, encrypted at rest via Electron's `safeStorage` (OS keychain/DPAPI/libsecret), not in the plain settings file.
 - Tracks played from either service skip the Web Audio analyser (so the visualizer falls back to its ambient animation for these, same as streaming links) — this is deliberate: requiring CORS mode for the audio element would make playback fail outright on servers that don't send `Access-Control-Allow-Origin` headers, and reliable playback matters more than a reactive visualizer here.
 - This integration talks to the standard Jellyfin and Plex HTTP APIs directly from the renderer and hasn't been exercised against a live server in this environment (no such server was available) — the connect/browse/play flow was verified end-to-end against mocked API responses. Please report any issues connecting to a real server.
 
