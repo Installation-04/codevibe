@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 
@@ -26,6 +27,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  setupAutoUpdates();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -34,6 +36,42 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+function sendUpdateStatus(payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', payload);
+  }
+}
+
+function setupAutoUpdates() {
+  if (!app.isPackaged) return; // dev runs have no packaged update feed to check
+
+  autoUpdater.autoDownload = false;
+
+  autoUpdater.on('checking-for-update', () => sendUpdateStatus({ state: 'checking' }));
+  autoUpdater.on('update-available', (info) => sendUpdateStatus({ state: 'available', version: info.version }));
+  autoUpdater.on('update-not-available', () => sendUpdateStatus({ state: 'up-to-date' }));
+  autoUpdater.on('error', (err) => sendUpdateStatus({ state: 'error', message: err.message }));
+  autoUpdater.on('download-progress', (p) => sendUpdateStatus({ state: 'downloading', percent: p.percent }));
+  autoUpdater.on('update-downloaded', (info) => sendUpdateStatus({ state: 'downloaded', version: info.version }));
+
+  autoUpdater.checkForUpdates().catch((err) => sendUpdateStatus({ state: 'error', message: err.message }));
+}
+
+ipcMain.handle('get-app-version', () => app.getVersion());
+
+ipcMain.handle('check-for-updates', () => {
+  if (!app.isPackaged) return { state: 'up-to-date' };
+  return autoUpdater.checkForUpdates().catch((err) => sendUpdateStatus({ state: 'error', message: err.message }));
+});
+
+ipcMain.handle('download-update', () => {
+  return autoUpdater.downloadUpdate().catch((err) => sendUpdateStatus({ state: 'error', message: err.message }));
+});
+
+ipcMain.handle('quit-and-install', () => {
+  autoUpdater.quitAndInstall();
 });
 
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus'];
