@@ -106,3 +106,5 @@ GH_TOKEN=<a token with repo scope> npm run dist:linux -- --publish always  # Lin
 ## Notes on streaming
 
 CodeVibe doesn't proxy or download audio from third-party platforms — it embeds their official web players (YouTube/Spotify/SoundCloud) in an isolated browser view, so playback follows each platform's own terms of service and requires an active account/subscription where applicable. The full audio-reactive visualizer is only available for local files, since embedded players don't expose raw audio data to the host page; streaming mode shows an ambient animation instead. If a specific link won't embed (the uploader disabled embedding, or it's region-locked), CodeVibe shows an inline message and an "Open in Browser Instead" button.
+
+YouTube embeds include an `origin` parameter to avoid a common "Error 153 / Video player configuration error" that YouTube's player shows when it can't validate the embedding page's origin (frequent in Electron `<webview>`/iframe contexts, since they don't send a normal browser Referer).
