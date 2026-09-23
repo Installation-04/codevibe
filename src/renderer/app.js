@@ -622,6 +622,17 @@
   const streamFrame = document.getElementById('stream-frame');
   const streamHistoryEl = document.getElementById('stream-history');
 
+  // YouTube's embed player frequently fails with "Error 153 / Video player
+  // configuration error" when it can't validate the embedding page's origin —
+  // common in Electron webview/iframe contexts that don't present a normal
+  // browser Referer. Passing a valid https:// origin (YouTube trusts itself)
+  // avoids that check failing outright.
+  function withYoutubeOrigin(embedUrl) {
+    const u = new URL(embedUrl);
+    u.searchParams.set('origin', 'https://www.youtube.com');
+    return u.toString();
+  }
+
   function buildEmbedUrl(raw) {
     let url;
     try { url = new URL(raw.trim()); } catch { return null; }
@@ -630,17 +641,17 @@
     if (host === 'youtube.com' || host === 'm.youtube.com') {
       const id = url.searchParams.get('v');
       const list = url.searchParams.get('list');
-      if (id) return `https://www.youtube.com/embed/${id}${list ? '?list=' + list : ''}`;
+      if (id) return withYoutubeOrigin(`https://www.youtube.com/embed/${id}${list ? '?list=' + list : ''}`);
       if (url.pathname.startsWith('/shorts/')) {
         const shortId = url.pathname.split('/')[2];
-        if (shortId) return `https://www.youtube.com/embed/${shortId}`;
+        if (shortId) return withYoutubeOrigin(`https://www.youtube.com/embed/${shortId}`);
       }
-      if (url.pathname.startsWith('/playlist') && list) return `https://www.youtube.com/embed/videoseries?list=${list}`;
+      if (url.pathname.startsWith('/playlist') && list) return withYoutubeOrigin(`https://www.youtube.com/embed/videoseries?list=${list}`);
       return null;
     }
     if (host === 'youtu.be') {
       const id = url.pathname.slice(1);
-      return id ? `https://www.youtube.com/embed/${id}` : null;
+      return id ? withYoutubeOrigin(`https://www.youtube.com/embed/${id}`) : null;
     }
     if (host === 'open.spotify.com') {
       const parts = url.pathname.split('/').filter(Boolean); // [track, id] etc.
