@@ -30,7 +30,9 @@ async function mockBridge(context) {
       onUpdateStatus: () => () => {},
       secureSet: async () => {},
       secureGet: async () => null,
-      secureDelete: async () => {}
+      secureDelete: async () => {},
+      toFileUrl: async (p) => 'file://' + p,
+      getPathForFile: (f) => f.name
     };
   });
 }
@@ -129,6 +131,115 @@ async function testStructureAndControls(browser) {
   await context.close();
 
   assert.deepEqual(errors, [], 'expected zero console errors while exercising theme/clock/visualizer controls');
+}
+
+async function testGamificationFlow(browser) {
+  const context = await browser.newContext();
+  await mockBridge(context);
+  const page = await context.newPage();
+  const errors = trackErrors(page);
+
+  await page.goto(INDEX_URL);
+  await page.waitForTimeout(300);
+
+  await page.click('.tab-btn[data-tab="avatar"]');
+  await page.waitForTimeout(150);
+
+  const counts = await page.evaluate(() => ({
+    bodyChips: document.getElementById('avatar-body-row').children.length,
+    skinSwatches: document.getElementById('avatar-skin-row').children.length,
+    hairCards: document.getElementById('avatar-hair-row').children.length,
+    outfitCards: document.getElementById('avatar-outfit-row').children.length,
+    accessoryCards: document.getElementById('avatar-accessory-row').children.length,
+    auraCards: document.getElementById('avatar-aura-row').children.length,
+    hairColors: document.getElementById('avatar-haircolor-row').children.length,
+    outfitColors: document.getElementById('avatar-outfitcolor-row').children.length
+  }));
+  assert.equal(counts.bodyChips, 3, 'avatar body-type row should render 3 chips');
+  assert.equal(counts.skinSwatches, 6, 'avatar skin-tone row should render 6 swatches');
+  assert.equal(counts.hairCards, 7, 'avatar hair row should render 7 style cards');
+  assert.equal(counts.outfitCards, 7, 'avatar outfit row should render 7 style cards');
+  assert.equal(counts.accessoryCards, 6, 'avatar accessory row should render 6 style cards');
+  assert.equal(counts.auraCards, 5, 'avatar aura row should render 5 style cards');
+  assert.equal(counts.hairColors, 8, 'avatar hair color row should render 8 swatches');
+  assert.equal(counts.outfitColors, 12, 'avatar outfit color row should render 12 swatches');
+
+  // Exercise every always-free customization control once.
+  await page.click('#avatar-body-row button:nth-child(2)');
+  await page.click('#avatar-skin-row .swatch:nth-child(3)');
+  await page.click('#avatar-haircolor-row .swatch:nth-child(5)');
+  await page.click('#avatar-outfitcolor-row .swatch:nth-child(4)');
+
+  const clickCard = (rowId, label) => page.evaluate(({ rowId, label }) => {
+    const row = document.getElementById(rowId);
+    const card = Array.from(row.children).find((c) => c.querySelector('.item-card-label').textContent === label);
+    card.click();
+  }, { rowId, label });
+
+  // Buy + equip one item per category — exercises the purchase→equip path and
+  // the exact coin math (no real money involved, ever — this is a local,
+  // cosmetic-only economy earned by listening time).
+  await page.evaluate(() => { CVGame.state.coins = 2000; CVGame.save(); });
+  await clickCard('avatar-hair-row', 'Mohawk');
+  await clickCard('avatar-outfit-row', 'Cyber Jacket');
+  await clickCard('avatar-accessory-row', 'Neon Visor');
+  await clickCard('avatar-aura-row', 'Neon Glow');
+
+  const afterBuy = await page.evaluate(() => ({ coins: CVGame.state.coins, avatar: { ...CVGame.state.avatar } }));
+  assert.equal(afterBuy.avatar.hair, 'mohawk', 'buying a hair style should equip it');
+  assert.equal(afterBuy.avatar.outfit, 'cyberjacket', 'buying an outfit should equip it');
+  assert.equal(afterBuy.avatar.accessory, 'visor', 'buying an accessory should equip it');
+  assert.equal(afterBuy.avatar.aura, 'neonglow', 'buying an aura should equip it');
+  assert.equal(afterBuy.coins, 2000 - 130 - 180 - 170 - 110, 'coins should be debited by the exact item costs');
+
+  const svgLength = await page.evaluate(() => document.getElementById('avatar-preview').innerHTML.length);
+  assert.ok(svgLength > 100, 'avatar preview should render a non-trivial SVG after customization');
+
+  // Buying something already-affordable-but-unaffordable-now should fail cleanly
+  // (no crash, no deduction) and surface a toast.
+  await page.evaluate(() => { CVGame.state.coins = 0; CVGame.save(); });
+  const rejected = await page.evaluate(() => CVGame.buyItem('hair', 'afro'));
+  assert.equal(rejected.ok, false, 'buying with insufficient coins should fail');
+  await page.waitForTimeout(100);
+  const toastCount = await page.evaluate(() => document.querySelectorAll('#toast-container .toast').length);
+  assert.ok(toastCount > 0, 'at least one toast should have been shown by now');
+
+  // Shop tab
+  await page.click('.tab-btn[data-tab="shop"]');
+  await page.waitForTimeout(150);
+  const shopCardCount = await page.evaluate(() => document.querySelectorAll('#shop-sections .item-card').length);
+  assert.equal(shopCardCount, 26, 'shop should list all 26 purchasable items across every category');
+
+  // Progress tab — simulate an hour of listening directly through the public
+  // gamification API (the same one app.js's playback tracker calls).
+  await page.evaluate(() => { for (let i = 0; i < 60; i++) CVGame.addVibeSeconds(60); });
+  await page.click('.tab-btn[data-tab="progress"]');
+  await page.waitForTimeout(150);
+  const progress = await page.evaluate(() => ({
+    coinsText: document.getElementById('stat-coins').textContent,
+    timeText: document.getElementById('stat-time').textContent,
+    achievementCount: document.querySelectorAll('#achievement-list .achievement-item').length,
+    unlockedCount: document.querySelectorAll('#achievement-list .achievement-item.unlocked').length
+  }));
+  assert.equal(progress.timeText, '1h 0m', 'progress tab should reflect 60 minutes of tracked vibe time');
+  assert.equal(progress.achievementCount, 20, 'progress tab should list all 20 achievements');
+  assert.ok(progress.unlockedCount >= 2, 'at least the time-based achievements should have unlocked by now');
+
+  // Scene backgrounds
+  await page.click('.tab-btn[data-tab="theme"]');
+  await page.click('#bg-mode-row .chip[data-bgmode="scene"]');
+  await page.waitForTimeout(150);
+  const sceneCardCount = await page.evaluate(() => document.querySelectorAll('#scene-row .item-card').length);
+  assert.equal(sceneCardCount, 6, 'scene picker should render all 6 scenes');
+  await page.evaluate(() => { CVGame.state.coins = 1000; CVGame.save(); });
+  await clickCard('scene-row', 'Cyberpunk Skyline');
+  await page.waitForTimeout(150);
+  const sceneClass = await page.evaluate(() => document.getElementById('scene-bg').className);
+  assert.ok(sceneClass.includes('scene-cyberpunk_skyline'), 'equipping a scene should apply its background class');
+  await page.click('#bg-mode-row .chip[data-bgmode="dynamic"]');
+
+  await context.close();
+  assert.deepEqual(errors, [], 'expected zero console errors during the avatar/shop/progress/scene flow');
 }
 
 async function testJellyfinFlow(browser) {
@@ -265,6 +376,7 @@ async function run() {
   const browser = await chromium.launch(launchOptions);
   const tests = [
     ['structure & controls', testStructureAndControls],
+    ['avatar/shop/progress/scenes', testGamificationFlow],
     ['Jellyfin connect/browse/play', testJellyfinFlow],
     ['Plex connect/browse/play', testPlexFlow]
   ];

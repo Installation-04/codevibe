@@ -10,6 +10,7 @@
   <div id="wallpaper-bg" class="hidden">
     <div id="wallpaper-overlay"></div>
   </div>
+  <div id="scene-bg" class="hidden"></div>
   <div id="bg-glow"></div>
   <canvas id="visualizer"></canvas>
 
@@ -19,6 +20,7 @@
         <span class="brand-dot"></span>
         <span class="brand-name">CodeVibe</span>
         <span id="app-version" class="brand-version"></span>
+        <span id="coin-badge" class="brand-coins" title="Vibe Coins">🪙 0</span>
         <button id="check-updates-btn" class="icon-btn-sm" title="Check for updates">⟳</button>
       </div>
 
@@ -32,6 +34,9 @@
         <button class="tab-btn" data-tab="stream">Streaming Link</button>
         <button class="tab-btn" data-tab="jellyfin">Jellyfin</button>
         <button class="tab-btn" data-tab="plex">Plex</button>
+        <button class="tab-btn" data-tab="avatar">Avatar</button>
+        <button class="tab-btn" data-tab="shop">Shop</button>
+        <button class="tab-btn" data-tab="progress">Progress</button>
         <button class="tab-btn" data-tab="theme">Theme</button>
       </nav>
 
@@ -101,6 +106,58 @@
         </div>
       </section>
 
+      <section class="tab-panel" id="panel-avatar">
+        <div class="avatar-preview-wrap">
+          <div id="avatar-preview" class="avatar-preview"></div>
+        </div>
+        <label class="switch-row">
+          <input type="checkbox" id="avatar-widget-toggle" checked />
+          <span>Show avatar on stage</span>
+        </label>
+
+        <h3>Body Type</h3>
+        <div class="chip-row" id="avatar-body-row"></div>
+
+        <h3>Skin Tone</h3>
+        <div class="swatch-row" id="avatar-skin-row"></div>
+
+        <h3>Hair Style</h3>
+        <div class="item-grid" id="avatar-hair-row"></div>
+        <h3>Hair Color</h3>
+        <div class="swatch-row" id="avatar-haircolor-row"></div>
+
+        <h3>Outfit</h3>
+        <div class="item-grid" id="avatar-outfit-row"></div>
+        <h3>Outfit Color</h3>
+        <div class="swatch-row" id="avatar-outfitcolor-row"></div>
+
+        <h3>Accessory</h3>
+        <div class="item-grid" id="avatar-accessory-row"></div>
+
+        <h3>Aura</h3>
+        <div class="item-grid" id="avatar-aura-row"></div>
+      </section>
+
+      <section class="tab-panel" id="panel-shop">
+        <p class="hint">Spend Vibe Coins earned from listening time on new looks and scenes — everything here is cosmetic and unlocked by playing, never by paying.</p>
+        <div id="shop-sections"></div>
+      </section>
+
+      <section class="tab-panel" id="panel-progress">
+        <div class="progress-stats">
+          <div class="stat-card"><span class="stat-value" id="stat-level">1</span><span class="stat-label">Level</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-coins">0</span><span class="stat-label">Vibe Coins</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-streak">0</span><span class="stat-label">Day Streak</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-time">0h 0m</span><span class="stat-label">Vibe Time</span></div>
+        </div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
+          <span class="xp-bar-label" id="xp-bar-label">0 / 100 XP</span>
+        </div>
+        <h3>Achievements</h3>
+        <ul id="achievement-list" class="achievement-list"></ul>
+      </section>
+
       <section class="tab-panel" id="panel-theme">
         <h3>Presets</h3>
         <div id="preset-grid" class="preset-grid"></div>
@@ -137,6 +194,12 @@
         <div class="chip-row" id="bg-mode-row">
           <button class="chip active" data-bgmode="dynamic">Dynamic Theme</button>
           <button class="chip active-off" data-bgmode="wallpaper">Wallpaper</button>
+          <button class="chip active-off" data-bgmode="scene">Scene</button>
+        </div>
+
+        <div id="scene-controls" class="hidden">
+          <h3>Scenes</h3>
+          <div class="item-grid" id="scene-row"></div>
         </div>
 
         <div id="bg-pattern-controls">
@@ -231,6 +294,10 @@
         <webview id="stream-frame" webpreferences="autoplayPolicy=no-user-gesture-required"></webview>
       </div>
 
+      <div id="avatar-widget" class="avatar-widget">
+        <div id="avatar-widget-canvas" class="avatar-widget-canvas"></div>
+      </div>
+
       <div id="now-playing" class="now-playing hidden">
         <div class="np-title" id="np-title">Nothing playing</div>
         <div class="np-sub" id="np-sub">Add a track or streaming link to begin</div>
@@ -251,6 +318,8 @@
   </div>
 
   <audio id="audio-el" crossorigin="anonymous"></audio>
+  <script src="avatar.js"></script>
+  <script src="gamification.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

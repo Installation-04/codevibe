@@ -136,6 +136,7 @@
         state.customAccent = null;
         state.customBg1 = null;
         state.customBg2 = null;
+        if (window.CVGame) CVGame.recordThemeTried(key);
         if (t.vizStyle) {
           state.vizStyle = t.vizStyle;
           document.querySelectorAll('#viz-style-row .chip').forEach((c) => {
@@ -218,6 +219,7 @@
       document.querySelectorAll('#viz-style-row .chip').forEach((c) => c.classList.remove('active'));
       chip.classList.add('active');
       state.vizStyle = chip.dataset.style;
+      if (window.CVGame) CVGame.recordVizTried(chip.dataset.style);
       saveState();
     });
   });
@@ -409,13 +411,19 @@
   const wallpaperBg = document.getElementById('wallpaper-bg');
   const wallpaperOverlay = document.getElementById('wallpaper-overlay');
   const wallpaperControls = document.getElementById('wallpaper-controls');
+  const sceneBg = document.getElementById('scene-bg');
+  const sceneControls = document.getElementById('scene-controls');
   const visualizerCanvas = document.getElementById('visualizer');
+  const SCENE_IDS = ['cozy_study', 'zen_garden', 'beach_sunset', 'enchanted_forest', 'cyberpunk_skyline', 'deep_space'];
 
   function applyBackgroundMode() {
     const isWallpaper = state.bgMode === 'wallpaper';
+    const isScene = state.bgMode === 'scene';
     wallpaperControls.classList.toggle('hidden', !isWallpaper);
     wallpaperBg.classList.toggle('hidden', !isWallpaper || !state.wallpaperPath);
-    document.getElementById('bg-glow').classList.toggle('hidden', isWallpaper);
+    sceneControls.classList.toggle('hidden', !isScene);
+    sceneBg.classList.toggle('hidden', !isScene);
+    document.getElementById('bg-glow').classList.toggle('hidden', isWallpaper || isScene);
 
     if (isWallpaper && state.wallpaperPath) {
       const url = state.wallpaperUrl || fallbackFileUrl(state.wallpaperPath);
@@ -426,7 +434,12 @@
       wallpaperOverlay.style.opacity = state.wallpaperDim / 100;
     }
 
-    const hideViz = isWallpaper && !state.wallpaperShowViz;
+    if (isScene && window.CVGame) {
+      SCENE_IDS.forEach((id) => sceneBg.classList.remove('scene-' + id));
+      sceneBg.classList.add('scene-' + (CVGame.state.scene || 'cozy_study'));
+    }
+
+    const hideViz = (isWallpaper && !state.wallpaperShowViz) || isScene;
     visualizerCanvas.classList.toggle('viz-hidden', hideViz);
   }
 
@@ -562,6 +575,7 @@
       state.tracks.push(...files);
       saveState();
       renderTrackList();
+      if (window.CVGame) files.forEach(() => CVGame.recordEvent('trackAdded'));
     }
   });
   document.getElementById('add-folder-btn').addEventListener('click', async () => {
@@ -570,6 +584,7 @@
       state.tracks.push(...files);
       saveState();
       renderTrackList();
+      if (window.CVGame) files.forEach(() => CVGame.recordEvent('trackAdded'));
     }
   });
 
@@ -591,6 +606,7 @@
     state.tracks.push(...added);
     saveState();
     renderTrackList();
+    if (window.CVGame) added.forEach(() => CVGame.recordEvent('trackAdded'));
     state.activeTab = 'library';
     setActiveTab('library');
     saveState();
@@ -686,6 +702,7 @@
 
   shuffleBtn.addEventListener('click', () => {
     state.shuffle = !state.shuffle;
+    if (state.shuffle && window.CVGame) CVGame.recordEvent('shuffleUsed');
     updateShuffleRepeatUi();
     saveState();
   });
@@ -845,6 +862,7 @@
     mode = 'stream';
     lastStreamRaw = raw;
     hideStreamError();
+    if (window.CVGame) CVGame.recordEvent('streamLoaded');
     audioEl.pause();
     streamFrame.src = embed;
     streamFrameWrap.classList.remove('hidden');
@@ -1503,8 +1521,249 @@
     });
   }
 
+  // ---------- Gamification: Avatar / Shop / Progress ----------
+  const coinBadge = document.getElementById('coin-badge');
+  const avatarPreviewEl = document.getElementById('avatar-preview');
+  const avatarWidgetEl = document.getElementById('avatar-widget');
+  const avatarWidgetCanvas = document.getElementById('avatar-widget-canvas');
+  const SHOP_CATEGORY_LABELS = { hair: 'Hair Styles', outfit: 'Outfits', accessory: 'Accessories', aura: 'Auras', scene: 'Scenes' };
+
+  function updateCoinBadge() {
+    if (!window.CVGame) return;
+    coinBadge.textContent = `🪙 ${CVGame.state.coins}`;
+  }
+
+  function applyAvatarAura() {
+    if (!window.CVGame) return;
+    const aura = CVGame.state.avatar.aura || 'none';
+    avatarWidgetEl.className = 'avatar-widget aura-' + aura;
+    avatarWidgetEl.classList.toggle('hidden', !CVGame.state.avatarWidgetVisible);
+  }
+
+  function refreshAvatarVisuals() {
+    if (!window.CVGame) return;
+    const svg = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
+    avatarPreviewEl.innerHTML = svg;
+    avatarWidgetCanvas.innerHTML = svg;
+    applyAvatarAura();
+    updateCoinBadge();
+  }
+
+  function createItemCard({ label, owned, equipped, cost, onClick }) {
+    const card = document.createElement('div');
+    card.className = 'item-card' + (equipped ? ' active' : '') + (!owned ? ' locked' : '');
+    const name = document.createElement('span');
+    name.className = 'item-card-label';
+    name.textContent = label;
+    const badge = document.createElement('span');
+    badge.className = 'item-card-badge';
+    badge.textContent = owned ? (equipped ? 'Equipped' : 'Owned') : `🔒 ${cost}`;
+    card.appendChild(name);
+    card.appendChild(badge);
+    card.addEventListener('click', onClick);
+    return card;
+  }
+
+  function tryEquip(category, key) {
+    if (!CVGame.isOwned(category, key)) {
+      const result = CVGame.buyItem(category, key);
+      if (!result.ok) {
+        CVGame.showToast({ icon: '🪙', title: 'Not enough Vibe Coins', subtitle: `Need ${result.missing} more — keep vibing to earn more!` });
+        return;
+      }
+    }
+    CVGame.equip(category, key);
+    if (category === 'scene') { renderSceneRow(); applyBackgroundMode(); }
+  }
+
+  function renderAvatarCatalogs() {
+    if (!window.CVGame) return;
+    const avatar = CVGame.state.avatar;
+
+    const bodyRow = document.getElementById('avatar-body-row');
+    bodyRow.innerHTML = '';
+    Object.entries(CVAvatar.BODY_TYPES).forEach(([key, def]) => {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (avatar.bodyType === key ? ' active' : '');
+      chip.textContent = def.label;
+      chip.addEventListener('click', () => CVGame.setAvatarField('bodyType', key));
+      bodyRow.appendChild(chip);
+    });
+
+    const skinRow = document.getElementById('avatar-skin-row');
+    skinRow.innerHTML = '';
+    CVAvatar.SKIN_TONES.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (avatar.skinTone.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.title = hex;
+      sw.addEventListener('click', () => CVGame.setAvatarField('skinTone', hex));
+      skinRow.appendChild(sw);
+    });
+
+    function renderStyleGrid(rowId, catalog, category, currentKey) {
+      const row = document.getElementById(rowId);
+      row.innerHTML = '';
+      Object.entries(catalog).forEach(([key, def]) => {
+        const owned = CVGame.isOwned(category, key);
+        const cost = (CVGame.SHOP_ITEMS.find((i) => i.id === `${category}:${key}`) || {}).cost;
+        row.appendChild(createItemCard({
+          label: def.label, owned, equipped: currentKey === key, cost,
+          onClick: () => tryEquip(category, key)
+        }));
+      });
+    }
+    renderStyleGrid('avatar-hair-row', CVAvatar.HAIR_STYLES, 'hair', avatar.hair);
+    renderStyleGrid('avatar-outfit-row', CVAvatar.OUTFIT_STYLES, 'outfit', avatar.outfit);
+    renderStyleGrid('avatar-accessory-row', CVAvatar.ACCESSORY_STYLES, 'accessory', avatar.accessory);
+    renderStyleGrid('avatar-aura-row', CVAvatar.AURA_STYLES, 'aura', avatar.aura);
+
+    const hairColorRow = document.getElementById('avatar-haircolor-row');
+    hairColorRow.innerHTML = '';
+    CVAvatar.HAIR_COLORS.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (avatar.hairColor.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.addEventListener('click', () => CVGame.setAvatarField('hairColor', hex));
+      hairColorRow.appendChild(sw);
+    });
+
+    const outfitColorRow = document.getElementById('avatar-outfitcolor-row');
+    outfitColorRow.innerHTML = '';
+    CVAvatar.OUTFIT_COLORS.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (avatar.outfitColor.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.addEventListener('click', () => CVGame.setAvatarField('outfitColor', hex));
+      outfitColorRow.appendChild(sw);
+    });
+  }
+
+  function renderShop() {
+    if (!window.CVGame) return;
+    const container = document.getElementById('shop-sections');
+    container.innerHTML = '';
+    CVGame.CATEGORIES.forEach((category) => {
+      const items = CVGame.SHOP_ITEMS.filter((i) => i.category === category);
+      if (!items.length) return;
+      const heading = document.createElement('h3');
+      heading.textContent = SHOP_CATEGORY_LABELS[category] || category;
+      container.appendChild(heading);
+      const grid = document.createElement('div');
+      grid.className = 'item-grid';
+      items.forEach((item) => {
+        const owned = CVGame.isOwned(category, item.key);
+        const equipped = category === 'scene' ? CVGame.state.scene === item.key : CVGame.state.avatar[category] === item.key;
+        grid.appendChild(createItemCard({ label: item.label, owned, equipped, cost: item.cost, onClick: () => tryEquip(category, item.key) }));
+      });
+      container.appendChild(grid);
+    });
+  }
+
+  function renderSceneRow() {
+    if (!window.CVGame) return;
+    const row = document.getElementById('scene-row');
+    row.innerHTML = '';
+    Object.entries(CVGame.SCENES).forEach(([key, def]) => {
+      const owned = CVGame.isOwned('scene', key);
+      row.appendChild(createItemCard({ label: def.label, owned, equipped: CVGame.state.scene === key, cost: def.cost, onClick: () => tryEquip('scene', key) }));
+    });
+  }
+
+  function renderProgress() {
+    if (!window.CVGame) return;
+    const s = CVGame.state;
+    document.getElementById('stat-level').textContent = s.level;
+    document.getElementById('stat-coins').textContent = s.coins;
+    document.getElementById('stat-streak').textContent = s.streakCount;
+    const h = Math.floor(s.totalMinutesListened / 60), m = s.totalMinutesListened % 60;
+    document.getElementById('stat-time').textContent = `${h}h ${m}m`;
+
+    const need = CVGame.xpForLevel(s.level);
+    document.getElementById('xp-bar-fill').style.width = `${Math.min(100, (s.xp / need) * 100)}%`;
+    document.getElementById('xp-bar-label').textContent = `${s.xp} / ${need} XP`;
+
+    const list = document.getElementById('achievement-list');
+    list.innerHTML = '';
+    CVGame.ACHIEVEMENTS.forEach((a) => {
+      const unlocked = s.achievementsUnlocked.includes(a.id);
+      const li = document.createElement('li');
+      li.className = 'achievement-item' + (unlocked ? ' unlocked' : '');
+      li.innerHTML = '<span class="achievement-icon"></span><span class="achievement-text"><span class="achievement-name"></span><span class="achievement-desc"></span></span><span class="achievement-reward"></span>';
+      li.querySelector('.achievement-icon').textContent = a.icon;
+      li.querySelector('.achievement-name').textContent = a.name;
+      li.querySelector('.achievement-desc').textContent = a.desc;
+      li.querySelector('.achievement-reward').textContent = unlocked ? '✓' : '+' + a.reward;
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById('avatar-widget-toggle').addEventListener('change', (e) => {
+    if (!window.CVGame) return;
+    CVGame.state.avatarWidgetVisible = e.target.checked;
+    CVGame.save();
+    applyAvatarAura();
+  });
+
+  // Draggable avatar widget (same pattern as the clock widget)
+  (function makeAvatarDraggable() {
+    let dragging = false, offX = 0, offY = 0;
+    avatarWidgetEl.addEventListener('mousedown', (e) => {
+      dragging = true;
+      const rect = avatarWidgetEl.getBoundingClientRect();
+      offX = e.clientX - rect.left;
+      offY = e.clientY - rect.top;
+      avatarWidgetEl.style.right = 'auto';
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      avatarWidgetEl.style.left = `${e.clientX - offX}px`;
+      avatarWidgetEl.style.top = `${e.clientY - offY}px`;
+    });
+    window.addEventListener('mouseup', () => {
+      if (!dragging || !window.CVGame) return;
+      dragging = false;
+      CVGame.state.avatarPos = { left: avatarWidgetEl.style.left, top: avatarWidgetEl.style.top };
+      CVGame.save();
+    });
+  })();
+
+  // Ticks once a second while music/streaming is actually playing, converting
+  // real listening time into Vibe Coins + XP (see gamification.js).
+  setInterval(() => {
+    if (!window.CVGame) return;
+    const isVibing =
+      ((mode === 'local' || mode === 'remote') && !audioEl.paused) ||
+      (mode === 'stream' && !!streamFrame.src && streamErrorEl.classList.contains('hidden'));
+    if (isVibing) CVGame.addVibeSeconds(1);
+  }, 1000);
+
+  if (window.CVGame) {
+    CVGame.onChange(() => {
+      refreshAvatarVisuals();
+      renderProgress();
+      renderAvatarCatalogs();
+      renderShop();
+    });
+  }
+
   // ---------- Init ----------
   async function init() {
+    if (window.CVGame) {
+      CVGame.init();
+      renderAvatarCatalogs();
+      renderShop();
+      renderSceneRow();
+      renderProgress();
+      refreshAvatarVisuals();
+      document.getElementById('avatar-widget-toggle').checked = CVGame.state.avatarWidgetVisible;
+      if (CVGame.state.avatarPos && CVGame.state.avatarPos.left) {
+        avatarWidgetEl.style.left = CVGame.state.avatarPos.left;
+        avatarWidgetEl.style.top = CVGame.state.avatarPos.top;
+        avatarWidgetEl.style.right = 'auto';
+      }
+    }
+
     applyTheme();
     renderPresetGrid();
     syncColorInputs();

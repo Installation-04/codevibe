@@ -1,6 +1,6 @@
 # CodeVibe
 
-A desktop music vibe visualizer for coding, lofi, and ambiance sessions — local files or streaming links, an audio-reactive visualizer, a clock overlay, and sixteen themes. Built with Electron; runs on Windows, macOS, and Linux.
+A desktop music vibe visualizer for coding, lofi, and ambiance sessions — local files or streaming links, an audio-reactive visualizer, a clock overlay, sixteen themes, and a customizable companion avatar that levels up the more you vibe. Built with Electron; runs on Windows, macOS, and Linux.
 
 [![Release](https://github.com/Installation-04/codevibe/actions/workflows/release.yml/badge.svg)](https://github.com/Installation-04/codevibe/actions/workflows/release.yml)
 
@@ -53,6 +53,18 @@ xattr -cr /Applications/CodeVibe.app
 - **Versioning & auto-update** — the current version is shown in the sidebar, with a refresh button to check for updates on demand at any time; packaged builds also check GitHub Releases automatically on startup via `electron-updater`, and either way show an in-app banner to download and restart when a newer release is found.
 - The app remembers which sidebar tab you were on, along with every other setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlist, shuffle/repeat/mute, streaming history), between launches.
 
+## Your Vibe Companion — avatar, progress, and a marketplace
+
+CodeVibe has a small, entirely local, entirely cosmetic game layer built around actually using the app:
+
+- **A customizable avatar** — body type, skin tone, hair style/color, outfit style/color, an accessory, and an aura, all mixed and matched independently rather than locked to a gender. Want a full cyberpunk look (mohawk, neon visor, piped jacket, neon glow)? Go for it. Prefer twintails, a sundress, a flower crown, and drifting petals? Just as available — pick anything, in any combination. The avatar shows up both in the Avatar tab and as a small draggable widget on the stage, with a gentle idle animation.
+- **Vibe Coins & levels** — listening to music (local, streaming, Jellyfin, or Plex) earns Vibe Coins and XP in real time; leveling up pays out a coin bonus. There's no real money involved anywhere — everything is earned by using the app.
+- **A marketplace** — the Shop tab lists every unlockable hair style, outfit, accessory, aura, and background **Scene**, grouped by category, each with its Vibe Coin price and owned/equipped state. The same items can also be bought straight from the Avatar tab (and Scenes from the Theme tab) — buying and equipping are one click.
+- **Scenes** — six illustrated background scenes (Cozy Study, Zen Garden, Beach Sunset, Enchanted Forest, Cyberpunk Skyline, Deep Space) selectable as a third background mode alongside Dynamic Theme and Wallpaper.
+- **Achievements & milestones** — 20 achievements covering listening milestones, streaks, night-owl/early-bird sessions, trying every theme/visualizer, shopping, and more, each paying out a coin reward the moment it's earned, with a toast notification and a running list (with progress) on the Progress tab alongside your level, coin balance, streak, and total vibe time.
+
+All of this lives in its own local save file (separate from your regular settings) and never touches the network.
+
 ## Security
 
 - The streaming `<webview>` (YouTube/Spotify/SoundCloud embeds) runs with node integration and Chromium sandboxing forced on, regardless of what any attribute on the tag requests, and can't spawn new windows or navigate itself to a non-http(s) destination (e.g. a malicious ad trying to redirect the whole embed).
@@ -75,7 +87,7 @@ npx playwright install chromium   # once, to download the test browser
 npm run test:smoke
 ```
 
-Runs a headless UI regression suite (`tests/smoke.js`) against the renderer: it checks that every theme/visualizer/clock control renders and wires up correctly, and exercises the full Jellyfin and Plex connect → browse → play flows against mocked servers. This is the same check that runs in CI on every push and pull request.
+Runs a headless UI regression suite (`tests/smoke.js`) against the renderer: it checks that every theme/visualizer/clock control renders and wires up correctly, exercises the avatar/shop/progress/scene flow (customizing, buying, equipping, achievements, and the coin economy), and exercises the full Jellyfin and Plex connect → browse → play flows against mocked servers. This is the same check that runs in CI on every push and pull request.
 
 ## Building installers
 
