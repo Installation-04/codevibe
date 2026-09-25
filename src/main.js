@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, shell, safeStorage } = requir
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 // Streaming embeds (YouTube/Spotify/SoundCloud) run inside a <webview> guest page;
 // autoplay there needs this switch set before the app is ready.
@@ -39,11 +40,41 @@ function createWindow() {
     if (!url.startsWith('file://')) event.preventDefault();
   });
 
+  // Deny every permission request (camera, mic, geolocation, notifications, etc.)
+  // by default — the app doesn't need any of them, and the streaming <webview>
+  // embeds untrusted third-party pages. Fullscreen is the one exception: YouTube's
+  // embed uses it for its own fullscreen button.
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    callback(permission === 'fullscreen');
+  });
+
+  // Hardening for the streaming <webview> (Electron security checklist #12): even
+  // though the tag in index.html never sets nodeintegration/preload attributes,
+  // strip/force them server-side too so a future bug (or injected content) can't
+  // attach a webview with elevated privileges.
+  mainWindow.webContents.on('will-attach-webview', (event, webPreferences) => {
+    delete webPreferences.preload;
+    delete webPreferences.preloadURL;
+    webPreferences.nodeIntegration = false;
+    webPreferences.nodeIntegrationInSubFrames = false;
+    webPreferences.contextIsolation = true;
+    webPreferences.sandbox = true;
+    webPreferences.webSecurity = true;
+  });
+
   // Belt-and-suspenders: the <webview> guest (YouTube/Spotify/SoundCloud embeds)
   // has its own separate WebContents, so deny popups there too even though the
   // `allowpopups` attribute is already off in the HTML.
   mainWindow.webContents.on('did-attach-webview', (event, webContents) => {
     webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+    // The host sets the guest's initial src itself, which doesn't fire
+    // will-navigate — so this only fires for a *guest-initiated* top-level
+    // navigation (e.g. a malicious ad redirecting the whole embed away from
+    // the player), and blocks it unless it's plain http(s).
+    webContents.on('will-navigate', (navEvent, url) => {
+      if (!/^https?:\/\//i.test(url)) navEvent.preventDefault();
+    });
   });
 }
 
@@ -82,6 +113,18 @@ function setupAutoUpdates() {
 }
 
 ipcMain.handle('get-app-version', () => app.getVersion());
+
+// Converts an absolute filesystem path to a properly percent-encoded file://
+// URL (handles filenames with #, %, spaces, etc. that would otherwise break
+// or truncate when a raw path is concatenated onto "file://" in the renderer).
+ipcMain.handle('to-file-url', (event, filePath) => {
+  if (typeof filePath !== 'string' || !filePath) return null;
+  try {
+    return pathToFileURL(filePath).href;
+  } catch {
+    return null;
+  }
+});
 
 ipcMain.handle('open-external', (event, url) => {
   if (typeof url === 'string' && /^https?:\/\//.test(url)) {

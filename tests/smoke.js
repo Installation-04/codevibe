@@ -64,9 +64,9 @@ async function testStructureAndControls(browser) {
     clockFontChips: document.querySelectorAll('#clock-font-row .chip').length
   }));
 
-  assert.equal(counts.presets, 14, 'theme preset grid should render 14 cards');
-  assert.equal(counts.swatches, 12, 'accent swatch row should render 12 swatches');
-  assert.equal(counts.vizChips, 6, 'visualizer style row should render 6 chips');
+  assert.equal(counts.presets, 16, 'theme preset grid should render 16 cards');
+  assert.equal(counts.swatches, 16, 'accent swatch row should render 16 swatches');
+  assert.equal(counts.vizChips, 7, 'visualizer style row should render 7 chips');
   assert.equal(counts.patternChips, 4, 'background pattern row should render 4 chips');
   assert.equal(counts.clockStyleChips, 5, 'clock style row should render 5 chips');
   assert.equal(counts.clockFontChips, 5, 'clock font row should render 5 chips');
@@ -87,6 +87,7 @@ async function testStructureAndControls(browser) {
     '#clock-font-row .chip[data-clockfont="mono"]',
     '#viz-style-row .chip[data-style="radial"]',
     '#viz-style-row .chip[data-style="kaleidoscope"]',
+    '#viz-style-row .chip[data-style="orbit"]',
     '#viz-style-row .chip[data-style="matrix"]',
     '#viz-style-row .chip[data-style="bars"]',
     '#bg-mode-row .chip[data-bgmode="wallpaper"]',
@@ -105,6 +106,14 @@ async function testStructureAndControls(browser) {
   const swatch = await page.$('#accent-swatch-row .swatch');
   assert.ok(swatch, 'expected at least one accent swatch to click');
   await swatch.click();
+
+  // Shuffle / repeat / mute — new transport controls, exercised the same way.
+  await page.click('#shuffle-btn');
+  await page.click('#repeat-btn');
+  await page.click('#repeat-btn');
+  await page.click('#repeat-btn');
+  await page.click('#mute-btn');
+  await page.click('#mute-btn');
 
   await page.click('.tab-btn[data-tab="stream"]');
   await page.fill('#stream-url', 'not a url at all');

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: file: blob:; media-src 'self' file: blob: data: http: https:; img-src 'self' data: file: https:; frame-src https:; connect-src 'self' http: https:;" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; media-src 'self' file: blob: data: http: https:; img-src 'self' data: file: https:; frame-src https:; connect-src 'self' http: https:;" />
 <title>CodeVibe</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
@@ -130,6 +130,7 @@
           <button class="chip active-off" data-style="matrix">Matrix Rain</button>
           <button class="chip active-off" data-style="radial">Radial Bars</button>
           <button class="chip active-off" data-style="kaleidoscope">Kaleidoscope</button>
+          <button class="chip active-off" data-style="orbit">Orbit Rings</button>
         </div>
 
         <h3>Background Mode</h3>
@@ -236,11 +237,14 @@
       </div>
 
       <div id="transport" class="transport">
+        <button id="shuffle-btn" class="icon-btn" title="Shuffle">🔀</button>
         <button id="prev-btn" class="icon-btn" title="Previous">⏮</button>
         <button id="play-btn" class="icon-btn play" title="Play/Pause">▶</button>
         <button id="next-btn" class="icon-btn" title="Next">⏭</button>
+        <button id="repeat-btn" class="icon-btn" title="Repeat">🔁</button>
         <input id="seek" type="range" min="0" max="100" value="0" />
         <span id="time-display">0:00 / 0:00</span>
+        <button id="mute-btn" class="icon-btn" title="Mute">🔊</button>
         <input id="volume" type="range" min="0" max="100" value="70" title="Volume" />
       </div>
     </main>

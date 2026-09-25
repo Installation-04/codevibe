@@ -17,7 +17,9 @@
     sleek:     { label: 'Sleek',         bg1: '#14161a', bg2: '#050607', accent: '#5b8def' },
     minimalist:{ label: 'Minimalist',    bg1: '#111214', bg2: '#000000', accent: '#d8d8d8' },
     vibecoding:{ label: 'VibeCoding',    bg1: '#1e1b4b', bg2: '#020617', accent: '#a78bfa' },
-    hacker:    { label: 'Retro Hacker',  bg1: '#1a1400', bg2: '#000000', accent: '#ffb000', vizStyle: 'matrix' }
+    hacker:    { label: 'Retro Hacker',  bg1: '#1a1400', bg2: '#000000', accent: '#ffb000', vizStyle: 'matrix' },
+    solarized: { label: 'Solarized Dusk',bg1: '#0b3d3a', bg2: '#04211f', accent: '#e8a33d' },
+    pastel:    { label: 'Pastel Dreams', bg1: '#2d1b3d', bg2: '#150a20', accent: '#ffb3d9' }
   };
 
   const defaultState = {
@@ -31,11 +33,16 @@
     clockSeconds: true,
     clockPos: null,
     volume: 70,
+    muted: false,
+    shuffle: false,
+    repeat: 'off',
+    activeTab: 'library',
     tracks: [],
     streamHistory: [],
     bgMode: 'dynamic',
     bgPattern: 'gradient',
     wallpaperPath: null,
+    wallpaperUrl: null,
     wallpaperFit: 'cover',
     wallpaperDim: 35,
     wallpaperBlur: 0,
@@ -58,7 +65,7 @@
   const ACCENT_SWATCHES = [
     '#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#38d9a9',
     '#22b8cf', '#4dabf7', '#748ffc', '#9775fa', '#f783ac',
-    '#ffffff', '#00ff41'
+    '#ffffff', '#00ff41', '#ff4d6d', '#00d9ff', '#c77dff', '#ffbe0b'
   ];
 
   let state = loadState();
@@ -191,12 +198,17 @@
   });
 
   // ---------- Tabs ----------
+  function setActiveTab(tab) {
+    const panel = document.getElementById('panel-' + tab);
+    if (!panel) return;
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p === panel));
+  }
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      state.activeTab = btn.dataset.tab;
+      setActiveTab(btn.dataset.tab);
+      saveState();
     });
   });
 
@@ -373,6 +385,26 @@
     });
   })();
 
+  // ---------- Local file URLs ----------
+  // Raw filesystem paths can contain characters (#, %, ?, spaces) that break or
+  // truncate when naively concatenated onto "file://". The main process builds
+  // a correctly percent-encoded URL via Node's url.pathToFileURL; this is the
+  // fallback for environments without that bridge (or state saved before it
+  // existed) — it targets the same handful of characters that actually cause
+  // trouble rather than re-implementing full URL encoding.
+  function fallbackFileUrl(rawPath) {
+    const clean = String(rawPath).replace(/\\/g, '/');
+    return 'file://' + encodeURI(clean).replace(/#/g, '%23').replace(/\?/g, '%3F');
+  }
+
+  async function toFileUrl(rawPath) {
+    if (window.codevibe && window.codevibe.toFileUrl) {
+      const url = await window.codevibe.toFileUrl(rawPath);
+      if (url) return url;
+    }
+    return fallbackFileUrl(rawPath);
+  }
+
   // ---------- Wallpaper / background mode ----------
   const wallpaperBg = document.getElementById('wallpaper-bg');
   const wallpaperOverlay = document.getElementById('wallpaper-overlay');
@@ -386,7 +418,8 @@
     document.getElementById('bg-glow').classList.toggle('hidden', isWallpaper);
 
     if (isWallpaper && state.wallpaperPath) {
-      wallpaperBg.style.backgroundImage = `url("file://${state.wallpaperPath.replace(/\\/g, '/')}")`;
+      const url = state.wallpaperUrl || fallbackFileUrl(state.wallpaperPath);
+      wallpaperBg.style.backgroundImage = `url("${url}")`;
       wallpaperBg.style.filter = state.wallpaperBlur > 0 ? `blur(${state.wallpaperBlur}px)` : 'none';
       wallpaperBg.classList.remove('fit-cover', 'fit-contain', 'fit-tile');
       wallpaperBg.classList.add('fit-' + state.wallpaperFit);
@@ -443,6 +476,7 @@
     const img = await window.codevibe.pickWallpaperImage();
     if (img) {
       state.wallpaperPath = img.path;
+      state.wallpaperUrl = await toFileUrl(img.path);
       applyBackgroundMode();
       saveState();
     }
@@ -450,6 +484,7 @@
 
   document.getElementById('clear-wallpaper-btn').addEventListener('click', () => {
     state.wallpaperPath = null;
+    state.wallpaperUrl = null;
     applyBackgroundMode();
     saveState();
   });
@@ -538,6 +573,29 @@
     }
   });
 
+  // ---------- Drag & drop ----------
+  const AUDIO_EXT_RE = /\.(mp3|wav|ogg|flac|m4a|aac|opus)$/i;
+  // Chromium's default action for an unhandled drop is to navigate the page to
+  // the dropped file, wiping out the whole app — always prevent that, even on
+  // drags we don't otherwise handle (e.g. a wallpaper image dropped here).
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (!window.codevibe || !window.codevibe.getPathForFile) return;
+    const dropped = Array.from(e.dataTransfer.files || []).filter((f) => AUDIO_EXT_RE.test(f.name));
+    if (!dropped.length) return;
+    const added = dropped
+      .map((f) => ({ path: window.codevibe.getPathForFile(f), name: f.name }))
+      .filter((t) => t.path);
+    if (!added.length) return;
+    state.tracks.push(...added);
+    saveState();
+    renderTrackList();
+    state.activeTab = 'library';
+    setActiveTab('library');
+    saveState();
+  });
+
   function hideStreamFrame() {
     document.getElementById('stream-frame-wrap').classList.add('hidden');
     document.getElementById('stream-frame').src = '';
@@ -549,18 +607,34 @@
     hideStreamFrame();
   }
 
-  function playLocalTrack(i) {
+  async function playLocalTrack(i) {
     if (i < 0 || i >= state.tracks.length) return;
     switchToLocalMode();
     currentIndex = i;
     const track = state.tracks[i];
+    const url = await toFileUrl(track.path);
+    if (currentIndex !== i) return; // superseded by a newer play request while we awaited
     audioEl.crossOrigin = 'anonymous';
-    audioEl.src = 'file://' + track.path;
+    audioEl.src = url;
     audioEl.play().catch(() => {});
     npTitle.textContent = track.name;
     npSub.textContent = 'Local file';
     renderTrackList();
     ensureAudioGraph();
+  }
+
+  // Picks the next track index honoring shuffle/repeat, or -1 if playback should stop.
+  function getNextTrackIndex() {
+    const count = state.tracks.length;
+    if (!count) return -1;
+    if (state.shuffle) {
+      if (count === 1) return state.repeat === 'off' ? -1 : 0;
+      let idx;
+      do { idx = Math.floor(Math.random() * count); } while (idx === currentIndex);
+      return idx;
+    }
+    if (currentIndex < count - 1) return currentIndex + 1;
+    return state.repeat === 'all' ? 0 : -1;
   }
 
   function stopPlayback() {
@@ -584,7 +658,9 @@
   audioEl.addEventListener('play', () => { playBtn.textContent = '⏸'; });
   audioEl.addEventListener('pause', () => { playBtn.textContent = '▶'; });
   audioEl.addEventListener('ended', () => {
-    if (currentIndex < state.tracks.length - 1) playLocalTrack(currentIndex + 1);
+    if (state.repeat === 'one') { playLocalTrack(currentIndex); return; }
+    const next = getNextTrackIndex();
+    if (next !== -1) playLocalTrack(next);
     else stopPlayback();
   });
 
@@ -592,7 +668,31 @@
     if (mode === 'local' && currentIndex > 0) playLocalTrack(currentIndex - 1);
   });
   document.getElementById('next-btn').addEventListener('click', () => {
-    if (mode === 'local' && currentIndex < state.tracks.length - 1) playLocalTrack(currentIndex + 1);
+    if (mode !== 'local') return;
+    const next = getNextTrackIndex();
+    if (next !== -1) playLocalTrack(next);
+  });
+
+  const shuffleBtn = document.getElementById('shuffle-btn');
+  const repeatBtn = document.getElementById('repeat-btn');
+  const REPEAT_ICONS = { off: '🔁', all: '🔁', one: '🔂' };
+
+  function updateShuffleRepeatUi() {
+    shuffleBtn.classList.toggle('toggle-active', state.shuffle);
+    repeatBtn.classList.toggle('toggle-active', state.repeat !== 'off');
+    repeatBtn.textContent = REPEAT_ICONS[state.repeat];
+    repeatBtn.title = state.repeat === 'one' ? 'Repeat: one track' : state.repeat === 'all' ? 'Repeat: all' : 'Repeat: off';
+  }
+
+  shuffleBtn.addEventListener('click', () => {
+    state.shuffle = !state.shuffle;
+    updateShuffleRepeatUi();
+    saveState();
+  });
+  repeatBtn.addEventListener('click', () => {
+    state.repeat = state.repeat === 'off' ? 'all' : state.repeat === 'all' ? 'one' : 'off';
+    updateShuffleRepeatUi();
+    saveState();
   });
 
   audioEl.addEventListener('timeupdate', () => {
@@ -611,10 +711,48 @@
     return `${m}:${s}`;
   }
 
+  const muteBtn = document.getElementById('mute-btn');
+
+  function updateMuteUi() {
+    muteBtn.textContent = state.muted ? '🔇' : state.volume === 0 ? '🔈' : '🔊';
+    muteBtn.classList.toggle('toggle-active', state.muted);
+  }
+
   volumeEl.addEventListener('input', () => {
     state.volume = Number(volumeEl.value);
     audioEl.volume = state.volume / 100;
+    if (state.muted) {
+      state.muted = false;
+      audioEl.muted = false;
+    }
+    updateMuteUi();
     saveState();
+  });
+
+  muteBtn.addEventListener('click', () => {
+    state.muted = !state.muted;
+    audioEl.muted = state.muted;
+    updateMuteUi();
+    saveState();
+  });
+
+  // ---------- Keyboard shortcuts ----------
+  // Ignored while typing in a text field so Space/M/N/P still work as normal
+  // characters in the stream-url / Jellyfin / Plex inputs.
+  document.addEventListener('keydown', (e) => {
+    const el = document.activeElement;
+    const tag = el && el.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      playBtn.click();
+    } else if (e.key === 'm' || e.key === 'M') {
+      muteBtn.click();
+    } else if (e.key === 'n' || e.key === 'N') {
+      document.getElementById('next-btn').click();
+    } else if (e.key === 'p' || e.key === 'P') {
+      document.getElementById('prev-btn').click();
+    }
   });
 
   // ---------- Streaming links ----------
@@ -627,10 +765,21 @@
   // common in Electron webview/iframe contexts that don't present a normal
   // browser Referer. Passing a valid https:// origin (YouTube trusts itself)
   // avoids that check failing outright.
-  function withYoutubeOrigin(embedUrl) {
+  function withYoutubeOrigin(embedUrl, startSeconds) {
     const u = new URL(embedUrl);
     u.searchParams.set('origin', 'https://www.youtube.com');
+    if (startSeconds) u.searchParams.set('start', String(startSeconds));
     return u.toString();
+  }
+
+  // YouTube's shareable "t" param is either a plain integer or a compact
+  // "1h2m3s"-style duration; the embed player only understands whole seconds.
+  function parseYoutubeStart(raw) {
+    if (!raw) return null;
+    if (/^\d+$/.test(raw)) return Number(raw);
+    const m = raw.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+    if (!m || (!m[1] && !m[2] && !m[3])) return null;
+    return (Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + (Number(m[3]) || 0);
   }
 
   function buildEmbedUrl(raw) {
@@ -638,10 +787,11 @@
     try { url = new URL(raw.trim()); } catch { return null; }
     const host = url.hostname.replace(/^www\./, '');
 
-    if (host === 'youtube.com' || host === 'm.youtube.com') {
+    if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
       const id = url.searchParams.get('v');
       const list = url.searchParams.get('list');
-      if (id) return withYoutubeOrigin(`https://www.youtube.com/embed/${id}${list ? '?list=' + list : ''}`);
+      const start = parseYoutubeStart(url.searchParams.get('t'));
+      if (id) return withYoutubeOrigin(`https://www.youtube.com/embed/${id}${list ? '?list=' + list : ''}`, start);
       if (url.pathname.startsWith('/shorts/')) {
         const shortId = url.pathname.split('/')[2];
         if (shortId) return withYoutubeOrigin(`https://www.youtube.com/embed/${shortId}`);
@@ -651,11 +801,18 @@
     }
     if (host === 'youtu.be') {
       const id = url.pathname.slice(1);
-      return id ? withYoutubeOrigin(`https://www.youtube.com/embed/${id}`) : null;
+      const start = parseYoutubeStart(url.searchParams.get('t'));
+      return id ? withYoutubeOrigin(`https://www.youtube.com/embed/${id}`, start) : null;
     }
     if (host === 'open.spotify.com') {
-      const parts = url.pathname.split('/').filter(Boolean); // [track, id] etc.
-      if (parts.length >= 2) return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
+      // Share links are sometimes locale-prefixed, e.g. /intl-de/track/<id>,
+      // so find the actual content-type segment instead of assuming parts[0].
+      const parts = url.pathname.split('/').filter(Boolean);
+      const types = ['track', 'album', 'playlist', 'episode', 'show', 'artist'];
+      const typeIndex = parts.findIndex((p) => types.includes(p));
+      if (typeIndex !== -1 && parts[typeIndex + 1]) {
+        return `https://open.spotify.com/embed/${parts[typeIndex]}/${parts[typeIndex + 1]}`;
+      }
       return null;
     }
     if (host === 'soundcloud.com') {
@@ -751,6 +908,17 @@
     npSub.textContent = subtitle;
   }
 
+  // A self-hosted server address with no scheme (e.g. "192.168.1.10:8096") is
+  // assumed to be plain http, matching how these servers are usually reached
+  // on a LAN. Anything with a non-http(s) scheme (file:, javascript:, etc.) is
+  // rejected outright rather than being handed to fetch().
+  function normalizeServerUrl(raw) {
+    let s = (raw || '').trim().replace(/\/$/, '');
+    if (!s) return null;
+    if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(s)) s = 'http://' + s;
+    return /^https?:\/\//i.test(s) ? s : null;
+  }
+
   // ---------- Jellyfin ----------
   const jellyfinConnectForm = document.getElementById('jellyfin-connect-form');
   const jellyfinConnectedEl = document.getElementById('jellyfin-connected');
@@ -815,12 +983,14 @@
   }
 
   document.getElementById('jellyfin-connect-btn').addEventListener('click', async () => {
-    const server = document.getElementById('jellyfin-server').value.trim().replace(/\/$/, '');
+    const server = normalizeServerUrl(document.getElementById('jellyfin-server').value);
     const username = document.getElementById('jellyfin-username').value.trim();
     const password = document.getElementById('jellyfin-password').value;
     jellyfinErrorEl.classList.add('hidden');
     if (!server || !username) {
-      jellyfinErrorEl.textContent = 'Server address and username are required.';
+      jellyfinErrorEl.textContent = server === null && document.getElementById('jellyfin-server').value.trim()
+        ? 'Server address must be a valid http(s) URL.'
+        : 'Server address and username are required.';
       jellyfinErrorEl.classList.remove('hidden');
       return;
     }
@@ -944,10 +1114,10 @@
   }
 
   document.getElementById('plex-server-btn').addEventListener('click', async () => {
-    const server = document.getElementById('plex-server').value.trim().replace(/\/$/, '');
+    const server = normalizeServerUrl(document.getElementById('plex-server').value);
     plexServerErrorEl.classList.add('hidden');
     if (!server) {
-      plexServerErrorEl.textContent = 'Server address is required.';
+      plexServerErrorEl.textContent = 'Server address is required and must be a valid http(s) URL.';
       plexServerErrorEl.classList.remove('hidden');
       return;
     }
@@ -1211,6 +1381,31 @@
     }
   }
 
+  function drawOrbitRings() {
+    analyser.getByteFrequencyData(dataArray);
+    const [r, g, b] = accentRGB();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const ringCount = 5;
+    const maxRadius = Math.min(canvas.width, canvas.height) * 0.42;
+    const rotation = Date.now() / 6000;
+    for (let ring = 0; ring < ringCount; ring++) {
+      const bandStart = Math.floor((ring / ringCount) * dataArray.length);
+      const bandEnd = Math.floor(((ring + 1) / ringCount) * dataArray.length);
+      let sum = 0;
+      for (let i = bandStart; i < bandEnd; i++) sum += dataArray[i];
+      const energy = sum / Math.max(1, bandEnd - bandStart) / 255;
+      const radius = ((maxRadius * (ring + 1)) / ringCount) * (0.85 + energy * 0.3);
+      const direction = ring % 2 === 0 ? 1 : -1;
+      const start = rotation * direction;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, start, start + Math.PI * (1.2 + energy * 0.6));
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.25 + energy * 0.6})`;
+      ctx.lineWidth = 2 + energy * 4;
+      ctx.stroke();
+    }
+  }
+
   function tick(t) {
     if (state.vizStyle === 'matrix') {
       drawMatrixRain();
@@ -1221,6 +1416,7 @@
         else if (state.vizStyle === 'particles') drawParticlesReactive();
         else if (state.vizStyle === 'radial') drawRadialBars();
         else if (state.vizStyle === 'kaleidoscope') drawKaleidoscope();
+        else if (state.vizStyle === 'orbit') drawOrbitRings();
         else drawBars();
       } else {
         drawAmbient(t);
@@ -1322,8 +1518,13 @@
     updatePlexUi();
     if (state.plexServer && state.plexToken) loadPlexTracks();
 
+    setActiveTab(state.activeTab || 'library');
+
     volumeEl.value = state.volume;
     audioEl.volume = state.volume / 100;
+    audioEl.muted = state.muted;
+    updateMuteUi();
+    updateShuffleRepeatUi();
     clockToggle.checked = state.clockVisible;
     clockWidget.classList.toggle('hidden', !state.clockVisible);
     secondsToggle.checked = state.clockSeconds;
