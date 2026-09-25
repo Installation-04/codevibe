@@ -6,9 +6,13 @@ A desktop music vibe visualizer for coding, lofi, and ambiance sessions — loca
 
 ## Screenshots
 
-| Ambient (Lofi Sunset) | Matrix Rain | Custom wallpaper (Cyberpunk) |
+| On stage: avatar, pet & clock | Avatar customization | Marketplace |
 | --- | --- | --- |
-| ![Lofi Sunset theme with the ambient particle visualizer](docs/screenshots/lofi-home.png) | ![Matrix theme with the Matrix Rain visualizer and the full theme picker](docs/screenshots/matrix-theme.png) | ![Cyberpunk theme with a custom wallpaper background and the particle visualizer overlaid](docs/screenshots/wallpaper-cyberpunk.png) |
+| ![Cyberpunk theme with a customized avatar and pet on stage, next to the clock overlay](docs/screenshots/stage-cyberpunk-avatar.png) | ![The Avatar tab, showing body type, skin tone, hair, and a mohawk style equipped](docs/screenshots/avatar-customization.png) | ![The Shop tab listing hair styles, outfits, and accessories with their Vibe Coin costs](docs/screenshots/shop-marketplace.png) |
+
+| Progress & streak heatmap | Trophy Case | Floating mini-widget |
+| --- | --- | --- |
+| ![The Progress tab showing level, coins, streak, XP bar, and an 8-week listening streak heatmap](docs/screenshots/progress-stats-heatmap.png) | ![The Trophy Case grid view of unlocked and locked achievements](docs/screenshots/trophy-case.png) | ![The small always-on-top mini-widget showing the avatar and focus timer](docs/screenshots/mini-widget.png) |
 
 ## Download
 
