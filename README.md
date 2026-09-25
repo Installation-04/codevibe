@@ -1,6 +1,6 @@
 # CodeVibe
 
-A desktop music vibe visualizer for coding, lofi, and ambiance sessions — local files or streaming links, an audio-reactive visualizer, a clock overlay, and fourteen themes. Built with Electron; runs on Windows, macOS, and Linux.
+A desktop music vibe visualizer for coding, lofi, and ambiance sessions — local files or streaming links, an audio-reactive visualizer, a clock overlay, and sixteen themes. Built with Electron; runs on Windows, macOS, and Linux.
 
 [![Release](https://github.com/Installation-04/codevibe/actions/workflows/release.yml/badge.svg)](https://github.com/Installation-04/codevibe/actions/workflows/release.yml)
 
@@ -41,16 +41,25 @@ xattr -cr /Applications/CodeVibe.app
 
 ## Features
 
-- **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus) and play them with a real audio-reactive visualizer, driven by the Web Audio API.
-- **6 visualizer styles** — Bars, Wave, Particles, Matrix Rain, Radial Bars, and Kaleidoscope.
-- **Streaming links** — paste a YouTube, Spotify, or SoundCloud link and it plays in an embedded browser view alongside an ambient visualizer, with a one-click "Open in Browser Instead" fallback if a link can't be embedded (e.g. embedding disabled by the uploader).
-- **Jellyfin and Plex** — connect to your own media server (Jellyfin: server address + username/password; Plex: sign in through plex.tv, then point it at your server) and browse and play your library directly.
+- **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus), or just drag and drop files onto the window, and play them with a real audio-reactive visualizer, driven by the Web Audio API.
+- **Shuffle, repeat, and mute** — shuffle the queue, repeat all or a single track, and a one-click mute that remembers your volume. Keyboard shortcuts: Space (play/pause), M (mute), N (next), P (previous).
+- **7 visualizer styles** — Bars, Wave, Particles, Matrix Rain, Radial Bars, Kaleidoscope, and Orbit Rings.
+- **Streaming links** — paste a YouTube (including YouTube Music and timestamped links), Spotify, or SoundCloud link and it plays in an embedded browser view alongside an ambient visualizer, with a one-click "Open in Browser Instead" fallback if a link can't be embedded (e.g. embedding disabled by the uploader).
+- **Jellyfin and Plex** — connect to your own media server (Jellyfin: server address + username/password; Plex: sign in through plex.tv, then point it at your server) and browse and play your library directly. Server addresses are validated as http(s) URLs before use.
 - **Clock overlay** — draggable, with 12h/24h format, optional seconds, 5 styles (Digital, Minimal, Boxed, Neon, Analog), 5 font families, and an adjustable size.
-- **14 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker — plus a quick-pick accent color palette and full custom accent/background color pickers.
+- **16 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker, Solarized Dusk, Pastel Dreams — plus a 16-color quick-pick accent palette and full custom accent/background color pickers.
 - **Background modes** — **Dynamic Theme** (animated gradient/visualizer, with Gradient/Grid/Vignette/Noise background patterns) or **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
 - **Panel appearance** — adjustable blur and opacity for the glass-style sidebar and transport bar.
 - **Versioning & auto-update** — the current version is shown in the sidebar, with a refresh button to check for updates on demand at any time; packaged builds also check GitHub Releases automatically on startup via `electron-updater`, and either way show an in-app banner to download and restart when a newer release is found.
-- Every setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlist, streaming history) persists between launches.
+- The app remembers which sidebar tab you were on, along with every other setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlist, shuffle/repeat/mute, streaming history), between launches.
+
+## Security
+
+- The streaming `<webview>` (YouTube/Spotify/SoundCloud embeds) runs with node integration and Chromium sandboxing forced on, regardless of what any attribute on the tag requests, and can't spawn new windows or navigate itself to a non-http(s) destination (e.g. a malicious ad trying to redirect the whole embed).
+- Permission requests (camera, microphone, geolocation, notifications, etc.) are denied by default for all web content the app loads; only fullscreen is allowed, for YouTube's own fullscreen button.
+- A strict Content-Security-Policy blocks inline scripts, `<object>`/`<embed>` content, and changing the page's base URL.
+- Jellyfin/Plex server addresses are required to resolve to an `http://` or `https://` URL before the app will connect to them.
+- Jellyfin/Plex credentials and tokens are encrypted at rest via Electron's `safeStorage` (OS keychain/DPAPI/libsecret) rather than stored in the plain settings file.
 
 ## Getting started
 
