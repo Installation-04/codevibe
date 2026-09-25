@@ -2186,14 +2186,16 @@
 
   function refreshAvatarVisuals() {
     if (!window.CVGame) return;
-    const svg = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
-    avatarPreviewEl.innerHTML = svg;
-    avatarWidgetCanvas.innerHTML = svg;
+    // Each target gets its own buildAvatarSVG() call (not a shared string) so
+    // the gradient/def ids it embeds are unique per <svg> in the document —
+    // reusing one render for both would leave two elements with the same id,
+    // which breaks fill="url(#id)" resolution on whichever one isn't first.
+    avatarPreviewEl.innerHTML = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
+    avatarWidgetCanvas.innerHTML = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
     applyAvatarAura();
     updateCoinBadge();
-    const petSvg = CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color);
-    petPreviewEl.innerHTML = petSvg;
-    petWidgetCanvas.innerHTML = petSvg;
+    petPreviewEl.innerHTML = CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color);
+    petWidgetCanvas.innerHTML = CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color);
   }
 
   function createItemCard({ label, owned, equipped, cost, onClick }) {
