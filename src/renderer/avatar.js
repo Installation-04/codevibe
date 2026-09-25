@@ -287,9 +287,24 @@
     }
   };
 
+  // Shared counter so every rendered SVG (there can be several live on screen
+  // at once — sidebar preview, stage widget, mini widget) gets gradient/def
+  // ids that don't collide with one another in the DOM.
+  let uidCounter = 0;
+  const INK = '#241a12';
+
   function buildPetSVG(species, color) {
     const pet = PET_STYLES[species] || PET_STYLES.cat;
-    return `<svg viewBox="0 0 ${PET_SIZE} ${PET_SIZE}" xmlns="http://www.w3.org/2000/svg">${pet.build(color || '#ffa94d')}</svg>`;
+    const petColor = color || '#ffa94d';
+    const uid = 'pet' + (uidCounter++);
+    const defs = `<defs><radialGradient id="petbody-${uid}" cx="38%" cy="30%" r="75%">` +
+      `<stop offset="0%" stop-color="${shade(petColor, 22)}"/>` +
+      `<stop offset="60%" stop-color="${petColor}"/>` +
+      `<stop offset="100%" stop-color="${shade(petColor, -16)}"/></radialGradient></defs>`;
+    const body = pet.build(`url(#petbody-${uid})`);
+    const highlight = `<ellipse cx="${PET_SIZE * 0.36}" cy="${PET_SIZE * 0.3}" rx="${PET_SIZE * 0.1}" ry="${PET_SIZE * 0.06}" fill="#fff" opacity="0.4"/>`;
+    return `<svg viewBox="0 0 ${PET_SIZE} ${PET_SIZE}" xmlns="http://www.w3.org/2000/svg">${defs}` +
+      `<g stroke="${INK}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${body}</g>${highlight}</svg>`;
   }
 
   function buildAvatarSVG(config) {
@@ -304,19 +319,41 @@
     const hat = HAT_STYLES[config.hat] || HAT_STYLES.none;
     const held = HELD_ITEM_STYLES[config.held] || HELD_ITEM_STYLES.none;
     const hairShapes = hair.build();
+    const uid = 'av' + (uidCounter++);
+    const skinId = `skin-${uid}`, hairId = `hair-${uid}`, outfitId = `outfit-${uid}`;
 
-    const parts = [];
-    parts.push(`<g fill="${hairColor}">${hairShapes.back}</g>`);
-    parts.push(`<path d="${torsoPath(config.bodyType)}" fill="${outfitColor}"/>`);
+    const defs = `<defs>` +
+      `<radialGradient id="${skinId}" cx="36%" cy="30%" r="72%">` +
+        `<stop offset="0%" stop-color="${shade(skin, 16)}"/>` +
+        `<stop offset="65%" stop-color="${skin}"/>` +
+        `<stop offset="100%" stop-color="${shade(skin, -14)}"/>` +
+      `</radialGradient>` +
+      `<linearGradient id="${hairId}" x1="20%" y1="0%" x2="80%" y2="100%">` +
+        `<stop offset="0%" stop-color="${shade(hairColor, 24)}"/>` +
+        `<stop offset="55%" stop-color="${hairColor}"/>` +
+        `<stop offset="100%" stop-color="${shade(hairColor, -16)}"/>` +
+      `</linearGradient>` +
+      `<linearGradient id="${outfitId}" x1="0%" y1="0%" x2="0%" y2="100%">` +
+        `<stop offset="0%" stop-color="${shade(outfitColor, 16)}"/>` +
+        `<stop offset="50%" stop-color="${outfitColor}"/>` +
+        `<stop offset="100%" stop-color="${shade(outfitColor, -20)}"/>` +
+      `</linearGradient>` +
+    `</defs>`;
+
+    const parts = [defs];
+    parts.push(`<g fill="url(#${hairId})" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round">${hairShapes.back}</g>`);
+    parts.push(`<path d="${torsoPath(config.bodyType)}" fill="url(#${outfitId})" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>`);
     parts.push(outfit.build(outfitColor, accentColor));
     parts.push(held.build(accentColor));
-    parts.push(`<circle cx="${CX - 36}" cy="${HEAD_CY + 2}" r="7" fill="${skin}"/><circle cx="${CX + 36}" cy="${HEAD_CY + 2}" r="7" fill="${skin}"/>`);
-    parts.push(`<circle cx="${CX}" cy="${HEAD_CY}" r="${HEAD_R}" fill="${skin}"/>`);
-    parts.push(`<g fill="${hairColor}">${hairShapes.front}</g>`);
+    parts.push(`<circle cx="${CX - 36}" cy="${HEAD_CY + 2}" r="7" fill="url(#${skinId})" stroke="${INK}" stroke-width="2"/><circle cx="${CX + 36}" cy="${HEAD_CY + 2}" r="7" fill="url(#${skinId})" stroke="${INK}" stroke-width="2"/>`);
+    parts.push(`<circle cx="${CX}" cy="${HEAD_CY}" r="${HEAD_R}" fill="url(#${skinId})" stroke="${INK}" stroke-width="3"/>`);
+    parts.push(`<ellipse cx="${CX - 16}" cy="${HEAD_CY - 20}" rx="12" ry="7" fill="#fff" opacity="0.3"/>`);
+    parts.push(`<g fill="url(#${hairId})" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round">${hairShapes.front}</g>`);
     parts.push(hat.build(accentColor, hairColor, hatColor));
     parts.push(`<ellipse cx="78" cy="96" rx="8" ry="5" fill="#ff8fa3" opacity="0.35"/><ellipse cx="122" cy="96" rx="8" ry="5" fill="#ff8fa3" opacity="0.35"/>`);
-    parts.push(`<circle cx="85" cy="80" r="3.5" fill="#2a2018"/><circle cx="115" cy="80" r="3.5" fill="#2a2018"/>`);
-    parts.push(`<path d="M88,98 Q100,106 112,98" fill="none" stroke="#2a2018" stroke-width="3" stroke-linecap="round"/>`);
+    parts.push(`<circle cx="85" cy="80" r="3.5" fill="${INK}"/><circle cx="83.5" cy="78.5" r="1" fill="#fff" opacity="0.8"/>`);
+    parts.push(`<circle cx="115" cy="80" r="3.5" fill="${INK}"/><circle cx="113.5" cy="78.5" r="1" fill="#fff" opacity="0.8"/>`);
+    parts.push(`<path d="M88,98 Q100,106 112,98" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`);
     parts.push(accessory.build(accentColor, hairColor));
 
     return `<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;

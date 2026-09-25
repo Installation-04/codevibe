@@ -24,7 +24,8 @@
     voidmarine:     { label: 'Void Marine',      bg1: '#1c2430', bg2: '#05070a', accent: '#ff8c3d' },
     emeraldkingdom: { label: 'Emerald Kingdom',  bg1: '#1a3320', bg2: '#050f08', accent: '#e8c34d' },
     wastelandradio: { label: 'Wasteland Radio',  bg1: '#3d2a12', bg2: '#140d04', accent: '#7fff6e' },
-    pixelquest:     { label: 'Pixel Quest',      bg1: '#241b4d', bg2: '#0a0618', accent: '#ff5fa8' }
+    pixelquest:     { label: 'Pixel Quest',      bg1: '#241b4d', bg2: '#0a0618', accent: '#ff5fa8' },
+    claude:         { label: 'Claude',           bg1: '#faf9f5', bg2: '#e8e6dc', accent: '#d97757', light: true }
   };
 
   const defaultState = {
@@ -148,6 +149,7 @@
       card.className = 'preset-card' + (state.theme === key ? ' active' : '');
       card.style.background = `linear-gradient(135deg, ${t.bg1}, ${t.bg2})`;
       card.style.borderColor = state.theme === key ? t.accent : 'transparent';
+      if (t.light) { card.style.color = '#141413'; card.style.textShadow = 'none'; }
       card.textContent = t.label;
       card.addEventListener('click', () => {
         state.theme = key;
@@ -494,7 +496,85 @@
   const sceneBg = document.getElementById('scene-bg');
   const sceneControls = document.getElementById('scene-controls');
   const visualizerCanvas = document.getElementById('visualizer');
-  const SCENE_IDS = ['cozy_study', 'zen_garden', 'beach_sunset', 'enchanted_forest', 'cyberpunk_skyline', 'deep_space'];
+  const SCENE_IDS = ['cozy_study', 'zen_garden', 'beach_sunset', 'enchanted_forest', 'retro_wave', 'pixel_world', 'cyberpunk_skyline', 'deep_space', 'ring_world', 'mystic_portal'];
+
+  // Multi-depth parallax starfield for the Deep Space scene. Runs only while
+  // that scene is on screen so it never costs CPU for the other scenes/modes.
+  const sceneStars = (() => {
+    const canvas = document.getElementById('scene-stars');
+    if (!canvas) return { start() {}, stop() {} };
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let raf = null;
+    let mouseX = 0, mouseY = 0;
+    let t = 0;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const layers = [
+        { count: 70, speedMin: 0.02, speedMax: 0.05, size: [0.6, 1.3], depth: 10 },
+        { count: 45, speedMin: 0.05, speedMax: 0.09, size: [1, 2], depth: 22 },
+        { count: 22, speedMin: 0.09, speedMax: 0.14, size: [1.5, 2.8], depth: 40 }
+      ];
+      stars = [];
+      layers.forEach((layer) => {
+        for (let i = 0; i < layer.count; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: layer.size[0] + Math.random() * (layer.size[1] - layer.size[0]),
+            drift: layer.speedMin + Math.random() * (layer.speedMax - layer.speedMin),
+            depth: layer.depth,
+            twinkleOffset: Math.random() * Math.PI * 2,
+            twinkleSpeed: 0.4 + Math.random() * 0.9
+          });
+        }
+      });
+    }
+
+    function onMouseMove(e) {
+      mouseX = e.clientX / window.innerWidth - 0.5;
+      mouseY = e.clientY / window.innerHeight - 0.5;
+    }
+
+    function draw() {
+      t += 0.016;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      stars.forEach((s) => {
+        s.y += s.drift;
+        if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+        const px = s.x + mouseX * s.depth;
+        const py = s.y + mouseY * s.depth;
+        const twinkle = 0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.twinkleOffset);
+        ctx.beginPath();
+        ctx.arc(px, py, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(226,236,255,${0.35 + twinkle * 0.65})`;
+        ctx.shadowColor = 'rgba(160,190,255,0.9)';
+        ctx.shadowBlur = s.r * 2.5;
+        ctx.fill();
+      });
+      raf = requestAnimationFrame(draw);
+    }
+
+    return {
+      start() {
+        if (raf) return;
+        resize();
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', onMouseMove);
+        draw();
+      },
+      stop() {
+        if (!raf) return;
+        cancelAnimationFrame(raf);
+        raf = null;
+        window.removeEventListener('resize', resize);
+        window.removeEventListener('mousemove', onMouseMove);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+  })();
 
   function applyBackgroundMode() {
     const isWallpaper = state.bgMode === 'wallpaper';
@@ -516,7 +596,11 @@
 
     if (isScene && window.CVGame) {
       SCENE_IDS.forEach((id) => sceneBg.classList.remove('scene-' + id));
-      sceneBg.classList.add('scene-' + (CVGame.state.scene || 'cozy_study'));
+      const activeScene = CVGame.state.scene || 'cozy_study';
+      sceneBg.classList.add('scene-' + activeScene);
+      if (activeScene === 'deep_space' || activeScene === 'retro_wave') sceneStars.start(); else sceneStars.stop();
+    } else {
+      sceneStars.stop();
     }
 
     const hideViz = (isWallpaper && !state.wallpaperShowViz) || isScene;
@@ -2102,16 +2186,25 @@
     avatarWidgetEl.classList.toggle('hidden', !CVGame.state.avatarWidgetVisible);
   }
 
-  function refreshAvatarVisuals() {
+  // Low-res target sizes for the pixelated avatar/pet render — chunky enough
+  // to read as real pixel art, big enough to keep faces/silhouettes legible.
+  const AVATAR_PIXEL_W = 60, AVATAR_PIXEL_H = 66;
+  const PET_PIXEL_SIZE = 34;
+
+  async function refreshAvatarVisuals() {
     if (!window.CVGame) return;
-    const svg = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
-    avatarPreviewEl.innerHTML = svg;
-    avatarWidgetCanvas.innerHTML = svg;
+    // Each target gets its own buildAvatarSVG() call (not a shared string) so
+    // the gradient/def ids it embeds are unique per <svg> in the document —
+    // reusing one render for both would leave two elements with the same id,
+    // which breaks fill="url(#id)" resolution on whichever one isn't first.
     applyAvatarAura();
     updateCoinBadge();
-    const petSvg = CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color);
-    petPreviewEl.innerHTML = petSvg;
-    petWidgetCanvas.innerHTML = petSvg;
+    await Promise.all([
+      renderPixelated(avatarPreviewEl, CVAvatar.buildAvatarSVG(CVGame.state.avatar), AVATAR_PIXEL_W, AVATAR_PIXEL_H),
+      renderPixelated(avatarWidgetCanvas, CVAvatar.buildAvatarSVG(CVGame.state.avatar), AVATAR_PIXEL_W, AVATAR_PIXEL_H),
+      renderPixelated(petPreviewEl, CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color), PET_PIXEL_SIZE, PET_PIXEL_SIZE),
+      renderPixelated(petWidgetCanvas, CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color), PET_PIXEL_SIZE, PET_PIXEL_SIZE)
+    ]);
   }
 
   function createItemCard({ label, owned, equipped, cost, onClick }) {
@@ -2418,6 +2511,26 @@
       img.onerror = reject;
       img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
     });
+  }
+
+  // Renders the (smooth, vector) avatar/pet SVG down onto a small low-res
+  // canvas, then lets CSS `image-rendering: pixelated` blow it back up —
+  // turning the existing scalable artwork into genuine blocky pixel art
+  // without hand-redrawing every hairstyle/outfit/accessory as pixel shapes.
+  async function renderPixelated(container, svgString, pw, ph) {
+    const img = await loadSvgImage(svgString);
+    let canvas = container.querySelector('canvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      container.innerHTML = '';
+      container.appendChild(canvas);
+    }
+    canvas.width = pw;
+    canvas.height = ph;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, pw, ph);
+    ctx.drawImage(img, 0, 0, pw, ph);
   }
 
   async function exportVibeCard() {

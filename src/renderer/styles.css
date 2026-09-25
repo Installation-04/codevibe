@@ -1,3 +1,46 @@
+@font-face {
+  font-family: 'Orbitron';
+  src: url('fonts/orbitron.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('fonts/press-start-2p.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('fonts/poppins-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('fonts/poppins-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('fonts/lora-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('fonts/lora-400italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
@@ -12,6 +55,7 @@ html, body {
 body {
   --bg-1: #241726;
   --bg-2: #0d0714;
+  --bg-mid: color-mix(in srgb, var(--bg-1) 50%, var(--bg-2) 50%);
   --accent: #ff9f6e;
   --accent-soft: rgba(255, 159, 110, 0.25);
   --panel-blur: 18px;
@@ -25,26 +69,26 @@ body {
   inset: 0;
   z-index: 0;
   background: radial-gradient(circle at 20% 20%, var(--accent-soft), transparent 45%),
-              linear-gradient(160deg, var(--bg-1), var(--bg-2));
+              linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
   transition: background 0.6s ease;
 }
 #bg-glow.pattern-grid {
   background:
     repeating-linear-gradient(0deg, var(--accent-soft) 0, transparent 1px, transparent 48px, var(--accent-soft) 49px),
     repeating-linear-gradient(90deg, var(--accent-soft) 0, transparent 1px, transparent 48px, var(--accent-soft) 49px),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
   background-size: 100% 100%, 100% 100%, 100% 100%;
   opacity: 1;
 }
 #bg-glow.pattern-vignette {
   background:
     radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.65) 100%),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
 }
 #bg-glow.pattern-noise {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E"),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
 }
 
 #wallpaper-bg {
@@ -90,7 +134,8 @@ body {
   min-width: 320px;
   background: rgb(15 12 18 / var(--panel-opacity));
   backdrop-filter: blur(var(--panel-blur));
-  border-right: 1px solid rgba(255,255,255,0.06);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 6px 0 40px rgba(0,0,0,0.35), inset -1px 0 0 rgba(255,255,255,0.04);
   padding: 18px 16px;
   display: flex;
   flex-direction: column;
@@ -110,9 +155,10 @@ body {
   box-shadow: 0 0 12px var(--accent);
 }
 .brand-name {
+  font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
   font-weight: 700;
   font-size: 18px;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 .brand-version {
   font-size: 11px;
@@ -186,6 +232,7 @@ body {
   background: var(--accent-soft);
   color: var(--text);
   border-color: var(--accent);
+  box-shadow: 0 0 14px var(--accent-soft);
 }
 
 .tab-panel { display: none; flex: 1; flex-direction: column; min-height: 0; }
@@ -202,8 +249,11 @@ body {
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
+  box-shadow: 0 2px 14px var(--accent-soft);
+  transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
-.btn:hover { filter: brightness(1.08); }
+.btn:hover { filter: brightness(1.08); box-shadow: 0 2px 20px var(--accent-soft); }
+.btn:active { transform: translateY(1px); }
 .btn-ghost {
   background: rgba(255,255,255,0.08);
   color: var(--text);
@@ -274,9 +324,10 @@ body {
 }
 
 .tab-panel h3 {
+  font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   color: var(--text-dim);
   margin: 14px 0 8px;
 }
@@ -344,6 +395,7 @@ body {
   color: #14100d;
   border-color: var(--accent);
   font-weight: 600;
+  box-shadow: 0 0 10px var(--accent-soft);
 }
 
 .switch-row {
@@ -587,11 +639,21 @@ input[type="range"] {
   width: 140px;
   height: 154px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.05);
+  background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.09), rgba(255,255,255,0.03) 70%);
   border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.3), 0 0 24px var(--accent-soft);
   padding: 8px;
 }
-.avatar-preview svg, .avatar-widget-canvas svg { width: 100%; height: 100%; display: block; }
+.avatar-widget-canvas { display: block; width: 100%; height: 100%; }
+.avatar-preview svg, .avatar-widget-canvas svg,
+.avatar-preview canvas, .avatar-widget-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
 
 .avatar-widget {
   position: absolute;
@@ -609,7 +671,27 @@ input[type="range"] {
   50% { transform: translateY(-6px); }
 }
 
-.avatar-widget.aura-neonglow .avatar-widget-canvas svg {
+.avatar-ground-glow {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -12px;
+  width: 84px;
+  height: 20px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, var(--accent-soft) 0%, transparent 72%);
+  border-radius: 50%;
+  filter: blur(2px);
+  pointer-events: none;
+  animation: avatar-glow-pulse 4s ease-in-out infinite;
+}
+@keyframes avatar-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50% { opacity: 0.85; transform: translateX(-50%) scale(1.18); }
+}
+
+.avatar-widget.aura-neonglow .avatar-widget-canvas svg,
+.avatar-widget.aura-neonglow .avatar-widget-canvas canvas {
   animation: aura-neon-pulse 2.4s ease-in-out infinite;
 }
 @keyframes aura-neon-pulse {
@@ -668,15 +750,19 @@ input[type="range"] {
 #scene-bg.scene-cozy_study {
   background: radial-gradient(circle at 25% 85%, rgba(255,180,120,0.28), transparent 50%),
               radial-gradient(circle at 80% 15%, rgba(255,220,160,0.12), transparent 40%),
-              linear-gradient(160deg, #3a2418, #150c07);
+              linear-gradient(160deg, #3a2418 0%, #3a2418 35%, #241408 35%, #241408 70%, #150c07 70%, #150c07 100%);
 }
 #scene-bg.scene-zen_garden {
   background: radial-gradient(circle at 50% 15%, rgba(200,255,230,0.35), transparent 45%),
               radial-gradient(circle at 80% 75%, rgba(160,255,210,0.12), transparent 45%),
-              linear-gradient(160deg, #1a4f42, #0a2620);
+              linear-gradient(160deg, #1a4f42 0%, #1a4f42 35%, #123a30 35%, #123a30 70%, #0a2620 70%, #0a2620 100%);
 }
 #scene-bg.scene-beach_sunset {
-  background: linear-gradient(180deg, #ffb37a 0%, #ff7f97 32%, #7a4a82 68%, #241738 100%);
+  background: linear-gradient(180deg,
+    #ffb37a 0%, #ffb37a 22%,
+    #ff7f97 22%, #ff7f97 50%,
+    #7a4a82 50%, #7a4a82 78%,
+    #241738 78%, #241738 100%);
 }
 #scene-bg.scene-enchanted_forest {
   background: radial-gradient(1px 1px at 20% 30%, #d6ff8a, transparent),
@@ -686,14 +772,14 @@ input[type="range"] {
               radial-gradient(1px 1px at 85% 40%, #d6ff8a, transparent),
               radial-gradient(circle at 25% 20%, rgba(140,110,255,0.16), transparent 40%),
               radial-gradient(circle at 80% 80%, rgba(60,200,140,0.14), transparent 45%),
-              linear-gradient(160deg, #071f14, #01100a);
+              linear-gradient(160deg, #071f14 0%, #071f14 35%, #04160e 35%, #04160e 70%, #01100a 70%, #01100a 100%);
   animation: scene-twinkle 2.2s ease-in-out infinite;
 }
 #scene-bg.scene-cyberpunk_skyline {
   background: repeating-linear-gradient(90deg, rgba(0,229,255,0.06) 0 2px, transparent 2px 64px),
               radial-gradient(circle at 30% 70%, rgba(255,32,121,0.18), transparent 40%),
               radial-gradient(circle at 75% 30%, rgba(0,229,255,0.16), transparent 40%),
-              linear-gradient(180deg, #150826, #02010a);
+              linear-gradient(180deg, #150826 0%, #150826 35%, #0a0415 35%, #0a0415 70%, #02010a 70%, #02010a 100%);
   animation: scene-flicker 5s ease-in-out infinite;
 }
 @keyframes scene-flicker {
@@ -701,24 +787,381 @@ input[type="range"] {
   94% { filter: brightness(1.12); }
   96% { filter: brightness(0.94); }
 }
-#scene-bg.scene-deep_space {
-  background: radial-gradient(1.5px 1.5px at 10% 20%, #fff, transparent),
-              radial-gradient(1.5px 1.5px at 22% 55%, #fff, transparent),
-              radial-gradient(1px 1px at 35% 12%, #fff, transparent),
-              radial-gradient(2px 2px at 42% 78%, #fff, transparent),
-              radial-gradient(1px 1px at 55% 35%, #fff, transparent),
-              radial-gradient(1.5px 1.5px at 63% 88%, #fff, transparent),
-              radial-gradient(1px 1px at 70% 15%, #fff, transparent),
-              radial-gradient(2px 2px at 78% 60%, #fff, transparent),
-              radial-gradient(1.5px 1.5px at 88% 30%, #fff, transparent),
-              radial-gradient(1px 1px at 92% 75%, #fff, transparent),
-              radial-gradient(1px 1px at 15% 90%, #fff, transparent),
-              radial-gradient(1.5px 1.5px at 48% 48%, #fff, transparent),
-              radial-gradient(circle at 30% 30%, rgba(120,90,255,0.12), transparent 45%),
-              radial-gradient(circle at 75% 70%, rgba(60,140,255,0.1), transparent 45%),
-              linear-gradient(180deg, #03040a, #000000);
-  animation: scene-twinkle 3s ease-in-out infinite;
+
+/* Retro Wave — synthwave sunset, glowing sun, starry sky, perspective neon grid, CRT scanlines */
+#scene-bg.scene-retro_wave {
+  background:
+    radial-gradient(circle at 50% 32%, #ffe9a8 0%, #ffb36b 34%, #ff6f91 52%, transparent 58%),
+    linear-gradient(180deg, #150a30 0%, #2c0f4a 35%, #7a1f6b 62%, #ff5f6d 82%, #ffb56b 100%);
+  overflow: hidden;
+  animation: retro-sun-glow 6s ease-in-out infinite;
 }
+#scene-bg.scene-retro_wave::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+@keyframes retro-sun-glow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.08) saturate(1.12); }
+}
+.scene-grid {
+  position: absolute;
+  z-index: 2;
+  left: -25%;
+  right: -25%;
+  bottom: 0;
+  height: 65%;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,70,190,0.75) 0 3px, transparent 3px 50px),
+    repeating-linear-gradient(0deg, rgba(0,229,255,0.6) 0 3px, transparent 3px 26px);
+  transform: perspective(320px) rotateX(50deg);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(180deg, transparent, black 12%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, black 12%);
+}
+
+/* Pixel World — banded 8-bit dusk sky, stepped pixel sun, jagged pixel hills, checkered ground */
+#scene-bg.scene-pixel_world {
+  background:
+    radial-gradient(ellipse 90px 26px at 20% 22%, rgba(255,255,255,0.45), transparent 70%),
+    radial-gradient(ellipse 70px 20px at 74% 16%, rgba(255,255,255,0.3), transparent 70%),
+    linear-gradient(180deg,
+      #1a1035 0%, #1a1035 18%,
+      #3b1f63 18%, #3b1f63 36%,
+      #9c3f74 36%, #9c3f74 54%,
+      #e8744a 54%, #e8744a 72%,
+      #ffd27a 72%, #ffd27a 100%);
+  overflow: hidden;
+}
+#scene-bg.scene-pixel_world::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background-color: #3a2a18;
+  background-image: url('assets/kenney-pixel-platformer/tile_grass.png');
+  background-repeat: repeat-x;
+  background-position: bottom left;
+  background-size: 40px 40px;
+  image-rendering: pixelated;
+  box-shadow: 0 -2px 0 rgba(0,0,0,0.4);
+}
+.scene-pixel-prop {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  bottom: 40px;
+  width: 40px;
+  height: 40px;
+  background-repeat: no-repeat;
+  background-size: 40px 40px;
+  image-rendering: pixelated;
+}
+#scene-bg.scene-pixel_world .scene-pixel-prop { display: block; }
+.scene-pixel-prop.prop-tree-a { left: 330px; background-image: url('assets/kenney-pixel-platformer/tile_tree.png'); }
+.scene-pixel-prop.prop-cactus { left: 400px; background-image: url('assets/kenney-pixel-platformer/tile_cactus.png'); }
+.scene-pixel-prop.prop-tree-b { right: 6%; background-image: url('assets/kenney-pixel-platformer/tile_tree.png'); }
+.scene-pixel-sun {
+  position: absolute;
+  z-index: 2;
+  width: 120px;
+  height: 120px;
+  left: 60%;
+  top: 14%;
+  background: #fff2b0;
+  box-shadow: 0 0 40px rgba(255,230,150,0.6);
+  clip-path: polygon(
+    30% 0%, 70% 0%, 70% 10%, 90% 10%, 90% 30%, 100% 30%, 100% 70%, 90% 70%, 90% 90%, 70% 90%,
+    70% 100%, 30% 100%, 30% 90%, 10% 90%, 10% 70%, 0% 70%, 0% 30%, 10% 30%, 10% 10%, 30% 10%
+  );
+}
+.scene-pixel-hills {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30%;
+  background: #241734;
+  clip-path: polygon(
+    0% 100%, 0% 60%, 8% 60%, 8% 40%, 16% 40%, 16% 55%, 24% 55%, 24% 30%, 32% 30%, 32% 50%,
+    40% 50%, 40% 20%, 48% 20%, 48% 45%, 56% 45%, 56% 35%, 64% 35%, 64% 55%, 72% 55%, 72% 25%,
+    80% 25%, 80% 48%, 88% 48%, 88% 38%, 96% 38%, 96% 60%, 100% 60%, 100% 100%
+  );
+}
+
+/* Ringworld — pixel-art homage to standing on a ring, looking up at the arc overhead */
+#scene-bg.scene-ring_world {
+  background:
+    radial-gradient(ellipse 140px 40px at 82% 12%, rgba(255,255,255,0.35), transparent 70%),
+    linear-gradient(180deg,
+      #0d2b4a 0%, #0d2b4a 14%,
+      #17456e 14%, #17456e 30%,
+      #2f7a8c 30%, #2f7a8c 48%,
+      #6fb98f 48%, #6fb98f 66%,
+      #bfe19a 66%, #bfe19a 82%,
+      #eef0b0 82%, #eef0b0 100%);
+  overflow: hidden;
+}
+#scene-bg.scene-ring_world::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background-color: #163a2c;
+  background-image: url('assets/kenney-pixel-platformer/tile_grass.png');
+  background-repeat: repeat-x;
+  background-position: bottom left;
+  background-size: 40px 40px;
+  image-rendering: pixelated;
+  filter: hue-rotate(150deg) saturate(1.3);
+  box-shadow: 0 -2px 0 rgba(0,0,0,0.4);
+}
+#scene-bg.scene-ring_world .scene-pixel-sun {
+  left: 80%;
+  top: 8%;
+  width: 90px;
+  height: 90px;
+  background: #fffdf0;
+  box-shadow: 0 0 50px rgba(255,250,220,0.85), 0 0 100px rgba(255,250,220,0.4);
+}
+#scene-bg.scene-ring_world .scene-pixel-hills {
+  background: #16332a;
+  clip-path: polygon(
+    0% 100%, 0% 70%, 8% 70%, 8% 50%, 16% 50%, 16% 62%, 24% 62%, 24% 42%, 32% 42%, 32% 58%,
+    40% 58%, 40% 32%, 48% 32%, 48% 55%, 56% 55%, 56% 45%, 64% 45%, 64% 62%, 72% 62%, 72% 38%,
+    80% 38%, 80% 56%, 88% 56%, 88% 48%, 96% 48%, 96% 68%, 100% 68%, 100% 100%
+  );
+}
+.scene-ring-arc {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: -1520px;
+  width: 1900px;
+  height: 1900px;
+  margin-left: -950px;
+  border-radius: 50%;
+  border: 46px solid #93a3ba;
+  box-shadow:
+    inset 0 0 0 6px rgba(20,30,45,0.4),
+    inset 0 0 0 14px rgba(255,255,255,0.12),
+    0 0 60px rgba(190,220,255,0.35);
+}
+
+/* Mystic Portal — starry night, a glowing rift climbing into the sky, twin tree-lined bluffs, a flower meadow */
+#scene-bg.scene-mystic_portal {
+  background:
+    radial-gradient(1.5px 1.5px at 12% 14%, #fff, transparent),
+    radial-gradient(1px 1px at 24% 8%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 38% 18%, #fff, transparent),
+    radial-gradient(1px 1px at 52% 10%, #fff, transparent),
+    radial-gradient(2px 2px at 68% 15%, #fff, transparent),
+    radial-gradient(1px 1px at 80% 9%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 90% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 8% 30%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 92% 34%, #fff, transparent),
+    radial-gradient(1px 1px at 18% 40%, #fff, transparent),
+    radial-gradient(1px 1px at 85% 44%, #fff, transparent),
+    linear-gradient(180deg, #0a1128 0%, #16244a 32%, #2c4a7c 60%, #5b84b8 100%);
+  overflow: hidden;
+  animation: scene-twinkle 3.4s ease-in-out infinite;
+}
+#scene-bg.scene-mystic_portal::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background-color: #1c301c;
+  background-image:
+    radial-gradient(2px 2px at 15% 30%, #e8d6ff, transparent),
+    radial-gradient(2px 2px at 35% 60%, #ffffff, transparent),
+    radial-gradient(2px 2px at 55% 25%, #c9a6ff, transparent),
+    radial-gradient(2px 2px at 75% 55%, #ffffff, transparent),
+    radial-gradient(2px 2px at 90% 35%, #e8d6ff, transparent),
+    url('assets/kenney-pixel-platformer/tile_grass.png');
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat-x;
+  background-size: auto, auto, auto, auto, auto, 40px 40px;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, bottom left;
+  image-rendering: pixelated;
+  box-shadow: 0 -2px 0 rgba(0,0,0,0.4);
+}
+.scene-portal-beam {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 22%;
+  width: 46%;
+  height: 78%;
+  transform: translateX(-50%);
+  clip-path: polygon(20% 0%, 80% 0%, 58% 100%, 42% 100%);
+  background: linear-gradient(180deg, rgba(225,240,255,0.85), rgba(180,215,255,0.6) 45%, rgba(140,195,255,0.28) 78%, transparent 100%);
+  filter: blur(5px);
+  box-shadow: 0 0 70px rgba(180,220,255,0.55), 0 0 140px rgba(160,205,255,0.3);
+  animation: portal-shimmer 4s ease-in-out infinite;
+}
+.scene-portal-beam::before,
+.scene-portal-beam::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 70%;
+  height: 18%;
+  border-radius: 50%;
+  background: rgba(220,238,255,0.35);
+  filter: blur(10px);
+}
+.scene-portal-beam::before { top: 8%; transform: translateX(-50%); }
+.scene-portal-beam::after { top: 46%; transform: translateX(-50%) scaleX(0.7); }
+@keyframes portal-shimmer {
+  0%, 100% { opacity: 0.8; filter: blur(5px) brightness(1); }
+  50% { opacity: 1; filter: blur(3.5px) brightness(1.18); }
+}
+.scene-portal-hills {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42%;
+  background: #15261c;
+  clip-path: polygon(
+    0% 100%, 0% 52%, 6% 46%, 12% 56%, 18% 40%, 24% 58%, 30% 44%, 36% 60%,
+    42% 78%, 50% 94%, 58% 78%,
+    64% 60%, 70% 44%, 76% 58%, 82% 40%, 88% 56%, 94% 46%, 100% 52%,
+    100% 100%
+  );
+}
+
+/* Deep Space — layered nebula + parallax starfield canvas + planet + docking platform */
+#scene-bg.scene-deep_space {
+  background: linear-gradient(180deg, #060716 0%, #060716 35%, #02030a 35%, #02030a 70%, #000000 70%, #000000 100%);
+  overflow: hidden;
+}
+#scene-bg.scene-deep_space::before,
+#scene-bg.scene-deep_space::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+#scene-bg.scene-deep_space::before {
+  width: 480px;
+  height: 480px;
+  left: -120px;
+  top: -80px;
+  background: radial-gradient(circle, #6a45e0, transparent 65%);
+  animation: nebula-drift-a 40s ease-in-out infinite;
+}
+#scene-bg.scene-deep_space::after {
+  width: 520px;
+  height: 520px;
+  right: -140px;
+  bottom: -120px;
+  background: radial-gradient(circle, #1f8fd6, transparent 65%);
+  animation: nebula-drift-b 46s ease-in-out infinite;
+}
+@keyframes nebula-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.15); }
+}
+@keyframes nebula-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-50px, -30px) scale(1.1); }
+}
+
+#scene-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.scene-planet, .scene-station, .scene-grid, .scene-pixel-sun, .scene-pixel-hills, .scene-ring-arc,
+.scene-portal-beam, .scene-portal-hills { display: none; }
+#scene-bg.scene-deep_space .scene-planet,
+#scene-bg.scene-deep_space .scene-station { display: block; }
+#scene-bg.scene-retro_wave .scene-grid { display: block; }
+#scene-bg.scene-pixel_world .scene-pixel-sun,
+#scene-bg.scene-pixel_world .scene-pixel-hills { display: block; }
+#scene-bg.scene-ring_world .scene-pixel-sun,
+#scene-bg.scene-ring_world .scene-pixel-hills,
+#scene-bg.scene-ring_world .scene-ring-arc { display: block; }
+#scene-bg.scene-mystic_portal .scene-portal-beam,
+#scene-bg.scene-mystic_portal .scene-portal-hills { display: block; }
+
+.scene-planet {
+  position: absolute;
+  z-index: 2;
+  width: 260px;
+  height: 260px;
+  right: -60px;
+  top: 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #d3b6ff 0%, #8a5fe0 26%, #4b2f8f 52%, #1c1240 76%, #0a0620 100%);
+  box-shadow: -18px 10px 60px rgba(140,95,224,0.4), inset -30px -20px 60px rgba(0,0,0,0.55), inset 12px 10px 30px rgba(255,255,255,0.12);
+  animation: planet-drift 30s ease-in-out infinite;
+}
+.scene-planet::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 155%;
+  height: 44px;
+  transform: translate(-50%, -50%) rotate(-18deg) scaleY(0.3);
+  border: 3px solid rgba(200,220,255,0.32);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(160,200,255,0.22);
+}
+@keyframes planet-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+.scene-station {
+  position: absolute;
+  z-index: 3;
+  left: 280px;
+  bottom: 0;
+  width: 460px;
+  height: 200px;
+  clip-path: polygon(0 100%, 0 62%, 15% 44%, 85% 44%, 100% 62%, 100% 100%);
+  background: linear-gradient(180deg, rgba(50,70,120,0.05) 0%, rgba(28,42,80,0.75) 40%, rgba(10,14,28,0.96) 100%);
+  box-shadow: 0 -2px 40px rgba(100,190,255,0.28), inset 0 60px 70px rgba(0,0,0,0.45);
+}
+.scene-station::before {
+  content: '';
+  position: absolute;
+  top: 44%;
+  left: 15%;
+  right: 15%;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, rgba(140,225,255,0.95) 0 6px, transparent 6px 22px);
+  filter: drop-shadow(0 0 6px rgba(140,225,255,0.9));
+  animation: station-lights 3s linear infinite;
+}
+@keyframes station-lights {
+  to { background-position: 28px 0; }
+}
+
 @keyframes scene-twinkle {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.85; }
@@ -740,7 +1183,7 @@ input[type="range"] {
   align-items: center;
   gap: 2px;
 }
-.stat-value { font-size: 20px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat-value { font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
 
 .xp-bar-wrap { margin-bottom: 16px; }
@@ -816,7 +1259,14 @@ input[type="range"] {
   border: 1px solid rgba(255,255,255,0.1);
   padding: 6px;
 }
-.pet-preview svg { width: 100%; height: 100%; display: block; }
+.pet-preview svg, .pet-preview canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
 .pet-widget-canvas {
   position: absolute;
   right: -22px;
@@ -826,7 +1276,14 @@ input[type="range"] {
   animation: pet-bob 3.2s ease-in-out infinite;
   animation-delay: 0.6s;
 }
-.pet-widget-canvas svg { width: 100%; height: 100%; display: block; }
+.pet-widget-canvas svg, .pet-widget-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
 @keyframes pet-bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
@@ -839,8 +1296,9 @@ input[type="range"] {
   gap: 10px;
   margin-bottom: 10px;
 }
-#focus-time { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#focus-time { font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif; font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .focus-mode {
+  font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -857,8 +1315,8 @@ input[type="range"] {
   border: 1px solid var(--accent);
   text-align: center;
 }
-#focus-widget-time { display: block; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.focus-widget-mode { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+#focus-widget-time { display: block; font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.focus-widget-mode { font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
 
 /* ---------- History chart ---------- */
 .history-chart {
@@ -987,4 +1445,238 @@ input[type="range"] {
   outline: 2px solid var(--accent) !important;
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* ---------- Pixel-art platform chrome ---------- */
+/* Square everything off — no rounded corners, no blurred glow shadows, just
+   hard pixel edges and offset drop-shadows like an 8-bit game's UI frame. */
+.brand-dot,
+.brand-coins,
+.icon-btn-sm,
+.update-banner,
+.tab-btn,
+.btn, .btn-ghost,
+.track-item,
+.field-input,
+.stream-input-row input,
+.preset-card,
+.preset-card-delete,
+.chip,
+#wallpaper-controls, #bg-pattern-controls,
+.swatch, .swatch.active,
+.clock-widget,
+#stream-frame-wrap,
+.icon-btn.play,
+.transport,
+.item-card,
+.avatar-preview,
+.stat-card,
+.xp-bar, .xp-bar-fill,
+.achievement-item,
+.toast,
+.pet-preview,
+.pet-widget-canvas,
+.focus-widget,
+.history-bar, .history-bar-fill,
+.modal-box,
+.heatmap-cell,
+.trophy-badge {
+  border-radius: 0 !important;
+}
+::-webkit-scrollbar-thumb { border-radius: 0; }
+
+.tab-btn, .chip, .field-input, .stream-input-row input {
+  border-width: 2px;
+}
+.avatar-preview, .pet-preview { border-width: 2px; }
+
+.btn, .btn-ghost {
+  border: 2px solid rgba(0,0,0,0.5);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+  transition: box-shadow 0.1s ease, transform 0.1s ease, filter 0.15s ease;
+}
+.btn:hover { box-shadow: 3px 3px 0 rgba(0,0,0,0.5); }
+.btn:active { box-shadow: 1px 1px 0 rgba(0,0,0,0.5); transform: translate(2px, 2px); }
+
+.tab-btn.active, .chip.active {
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.45);
+}
+.item-card.active {
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+}
+
+#sidebar { box-shadow: 4px 0 0 rgba(0,0,0,0.4); }
+.transport { border: 2px solid rgba(0,0,0,0.45); box-shadow: 3px 3px 0 rgba(0,0,0,0.4); }
+.clock-widget.style-boxed { box-shadow: 3px 3px 0 rgba(0,0,0,0.4); }
+.modal-box { border: 2px solid rgba(0,0,0,0.5); box-shadow: 4px 4px 0 rgba(0,0,0,0.5); }
+
+/* A bitmap display face for short, prominent labels — it reads great at a
+   handful of characters but is unreadable/overflows at paragraph sizes, so
+   body copy, hints, and long button/tab labels keep the regular UI font. */
+.brand-name, .tab-panel h3, .section-header-row h3, .modal-header h2,
+.stat-value, .np-title {
+  font-family: 'Press Start 2P', 'Orbitron', monospace;
+}
+.brand-name { font-size: 13px; letter-spacing: 0; }
+.stat-value { font-size: 14px; }
+.modal-header h2 { font-size: 13px; }
+.np-title { font-size: 15px; }
+
+/* ---------- Claude theme ---------- */
+/* Anthropic's brand look: warm cream instead of the app's usual dark base,
+   Poppins for short/prominent labels, Lora everywhere else, soft rounded
+   shapes and gentle shadows in place of the pixel-platform chrome's hard
+   squared edges and offset drop-shadows. Scoped entirely under this
+   attribute selector so every other theme/scene is untouched. */
+body[data-theme="claude"] {
+  --text: #141413;
+  --text-dim: rgba(20, 20, 19, 0.62);
+  font-family: 'Lora', Georgia, serif;
+}
+body[data-theme="claude"] .hint,
+body[data-theme="claude"] .track-item,
+body[data-theme="claude"] .field-input,
+body[data-theme="claude"] .stream-input-row input,
+body[data-theme="claude"] .achievement-desc,
+body[data-theme="claude"] .toast-sub,
+body[data-theme="claude"] .now-playing {
+  font-family: 'Lora', Georgia, serif;
+}
+body[data-theme="claude"] .brand-name,
+body[data-theme="claude"] .tab-panel h3,
+body[data-theme="claude"] .section-header-row h3,
+body[data-theme="claude"] .modal-header h2,
+body[data-theme="claude"] .stat-value,
+body[data-theme="claude"] .np-title,
+body[data-theme="claude"] .tab-btn,
+body[data-theme="claude"] .btn,
+body[data-theme="claude"] .btn-ghost,
+body[data-theme="claude"] .chip,
+body[data-theme="claude"] .item-card-label,
+body[data-theme="claude"] .preset-card,
+body[data-theme="claude"] .achievement-name,
+body[data-theme="claude"] .toast-title,
+body[data-theme="claude"] .focus-mode,
+body[data-theme="claude"] .focus-widget-mode,
+body[data-theme="claude"] #focus-time,
+body[data-theme="claude"] #focus-widget-time,
+body[data-theme="claude"] .trophy-name {
+  font-family: 'Poppins', Arial, sans-serif;
+}
+
+/* Flat fills: dark-mode chip/panel washes (white-on-dark) flipped to
+   light-mode washes (dark-on-cream). */
+body[data-theme="claude"] .tab-btn,
+body[data-theme="claude"] .btn-ghost,
+body[data-theme="claude"] #wallpaper-controls,
+body[data-theme="claude"] #bg-pattern-controls,
+body[data-theme="claude"] .item-card,
+body[data-theme="claude"] .stat-card,
+body[data-theme="claude"] .achievement-item,
+body[data-theme="claude"] .achievement-item.unlocked,
+body[data-theme="claude"] .pet-preview,
+body[data-theme="claude"] .pet-widget-canvas,
+body[data-theme="claude"] .trophy-badge,
+body[data-theme="claude"] .xp-bar,
+body[data-theme="claude"] .heatmap-cell {
+  background: rgba(20, 20, 19, 0.05);
+}
+body[data-theme="claude"] .tab-btn:hover,
+body[data-theme="claude"] .item-card:hover,
+body[data-theme="claude"] .track-item:hover,
+body[data-theme="claude"] .icon-btn:hover {
+  background: rgba(20, 20, 19, 0.08);
+}
+body[data-theme="claude"] .field-input,
+body[data-theme="claude"] .stream-input-row input {
+  background: rgba(20, 20, 19, 0.04);
+  border-color: rgba(20, 20, 19, 0.15);
+}
+body[data-theme="claude"] .avatar-preview {
+  background: radial-gradient(circle at 50% 35%, rgba(20,20,19,0.06), rgba(20,20,19,0.02) 70%);
+  border-color: rgba(20, 20, 19, 0.12);
+}
+body[data-theme="claude"] .swatch {
+  box-shadow: inset 0 0 0 1px rgba(20, 20, 19, 0.18);
+}
+body[data-theme="claude"] input[type="range"] { background: rgba(20, 20, 19, 0.15); }
+body[data-theme="claude"] ::-webkit-scrollbar-thumb { background: rgba(20, 20, 19, 0.18); }
+
+body[data-theme="claude"] #sidebar {
+  border-right: 1px solid rgba(20, 20, 19, 0.08);
+  box-shadow: 1px 0 0 rgba(20, 20, 19, 0.06);
+}
+body[data-theme="claude"] .modal-header,
+body[data-theme="claude"] .modal-actions {
+  border-color: rgba(20, 20, 19, 0.1) !important;
+}
+body[data-theme="claude"] .preset-card-delete {
+  background: rgba(20, 20, 19, 0.45);
+}
+
+/* Shapes: soft rounded corners and pills/circles in place of square pixel
+   corners; gentle shadows in place of hard offset ones. */
+body[data-theme="claude"] .tab-btn,
+body[data-theme="claude"] .btn,
+body[data-theme="claude"] .btn-ghost,
+body[data-theme="claude"] .field-input,
+body[data-theme="claude"] .stream-input-row input,
+body[data-theme="claude"] .item-card,
+body[data-theme="claude"] .preset-card,
+body[data-theme="claude"] .avatar-preview,
+body[data-theme="claude"] .pet-preview,
+body[data-theme="claude"] .stat-card,
+body[data-theme="claude"] .achievement-item,
+body[data-theme="claude"] .toast,
+body[data-theme="claude"] .pet-widget-canvas,
+body[data-theme="claude"] .focus-widget,
+body[data-theme="claude"] .modal-box,
+body[data-theme="claude"] .trophy-badge,
+body[data-theme="claude"] .clock-widget,
+body[data-theme="claude"] #stream-frame-wrap,
+body[data-theme="claude"] #wallpaper-controls,
+body[data-theme="claude"] #bg-pattern-controls {
+  border-radius: 14px !important;
+}
+body[data-theme="claude"] .chip,
+body[data-theme="claude"] .transport,
+body[data-theme="claude"] .brand-coins,
+body[data-theme="claude"] .xp-bar,
+body[data-theme="claude"] .xp-bar-fill,
+body[data-theme="claude"] .heatmap-cell {
+  border-radius: 999px !important;
+}
+body[data-theme="claude"] .icon-btn.play,
+body[data-theme="claude"] .brand-dot,
+body[data-theme="claude"] .swatch,
+body[data-theme="claude"] .swatch.active,
+body[data-theme="claude"] .preset-card-delete {
+  border-radius: 50% !important;
+}
+
+body[data-theme="claude"] .btn,
+body[data-theme="claude"] .btn-ghost {
+  border: 1px solid rgba(20, 20, 19, 0.12);
+  box-shadow: 0 1px 2px rgba(20, 20, 19, 0.08);
+}
+body[data-theme="claude"] .btn:hover,
+body[data-theme="claude"] .btn-ghost:hover {
+  box-shadow: 0 3px 8px rgba(20, 20, 19, 0.14);
+}
+body[data-theme="claude"] .btn:active { box-shadow: 0 1px 2px rgba(20, 20, 19, 0.08); }
+body[data-theme="claude"] .tab-btn.active,
+body[data-theme="claude"] .chip.active,
+body[data-theme="claude"] .item-card.active {
+  box-shadow: none;
+}
+body[data-theme="claude"] .transport {
+  border: 1px solid rgba(20, 20, 19, 0.1);
+  box-shadow: 0 4px 16px rgba(20, 20, 19, 0.1);
+}
+body[data-theme="claude"] .modal-box {
+  border: 1px solid rgba(20, 20, 19, 0.1);
+  box-shadow: 0 20px 60px rgba(20, 20, 19, 0.18);
+}
+body[data-theme="claude"] .icon-btn.play {
+  box-shadow: 0 2px 8px rgba(217, 119, 87, 0.35);
 }
