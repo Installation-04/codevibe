@@ -10,7 +10,11 @@
   <div id="wallpaper-bg" class="hidden">
     <div id="wallpaper-overlay"></div>
   </div>
-  <div id="scene-bg" class="hidden"></div>
+  <div id="scene-bg" class="hidden">
+    <canvas id="scene-stars"></canvas>
+    <div class="scene-planet"></div>
+    <div class="scene-station"></div>
+  </div>
   <div id="bg-glow"></div>
   <canvas id="visualizer"></canvas>
 
@@ -438,6 +442,7 @@
       </div>
 
       <div id="avatar-widget" class="avatar-widget">
+        <div class="avatar-ground-glow"></div>
         <div id="avatar-widget-canvas" class="avatar-widget-canvas"></div>
         <div id="pet-widget-canvas" class="pet-widget-canvas"></div>
       </div>

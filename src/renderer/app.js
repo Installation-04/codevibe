@@ -496,6 +496,84 @@
   const visualizerCanvas = document.getElementById('visualizer');
   const SCENE_IDS = ['cozy_study', 'zen_garden', 'beach_sunset', 'enchanted_forest', 'cyberpunk_skyline', 'deep_space'];
 
+  // Multi-depth parallax starfield for the Deep Space scene. Runs only while
+  // that scene is on screen so it never costs CPU for the other scenes/modes.
+  const sceneStars = (() => {
+    const canvas = document.getElementById('scene-stars');
+    if (!canvas) return { start() {}, stop() {} };
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let raf = null;
+    let mouseX = 0, mouseY = 0;
+    let t = 0;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const layers = [
+        { count: 70, speedMin: 0.02, speedMax: 0.05, size: [0.6, 1.3], depth: 10 },
+        { count: 45, speedMin: 0.05, speedMax: 0.09, size: [1, 2], depth: 22 },
+        { count: 22, speedMin: 0.09, speedMax: 0.14, size: [1.5, 2.8], depth: 40 }
+      ];
+      stars = [];
+      layers.forEach((layer) => {
+        for (let i = 0; i < layer.count; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: layer.size[0] + Math.random() * (layer.size[1] - layer.size[0]),
+            drift: layer.speedMin + Math.random() * (layer.speedMax - layer.speedMin),
+            depth: layer.depth,
+            twinkleOffset: Math.random() * Math.PI * 2,
+            twinkleSpeed: 0.4 + Math.random() * 0.9
+          });
+        }
+      });
+    }
+
+    function onMouseMove(e) {
+      mouseX = e.clientX / window.innerWidth - 0.5;
+      mouseY = e.clientY / window.innerHeight - 0.5;
+    }
+
+    function draw() {
+      t += 0.016;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      stars.forEach((s) => {
+        s.y += s.drift;
+        if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+        const px = s.x + mouseX * s.depth;
+        const py = s.y + mouseY * s.depth;
+        const twinkle = 0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.twinkleOffset);
+        ctx.beginPath();
+        ctx.arc(px, py, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(226,236,255,${0.35 + twinkle * 0.65})`;
+        ctx.shadowColor = 'rgba(160,190,255,0.9)';
+        ctx.shadowBlur = s.r * 2.5;
+        ctx.fill();
+      });
+      raf = requestAnimationFrame(draw);
+    }
+
+    return {
+      start() {
+        if (raf) return;
+        resize();
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', onMouseMove);
+        draw();
+      },
+      stop() {
+        if (!raf) return;
+        cancelAnimationFrame(raf);
+        raf = null;
+        window.removeEventListener('resize', resize);
+        window.removeEventListener('mousemove', onMouseMove);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+  })();
+
   function applyBackgroundMode() {
     const isWallpaper = state.bgMode === 'wallpaper';
     const isScene = state.bgMode === 'scene';
@@ -516,7 +594,11 @@
 
     if (isScene && window.CVGame) {
       SCENE_IDS.forEach((id) => sceneBg.classList.remove('scene-' + id));
-      sceneBg.classList.add('scene-' + (CVGame.state.scene || 'cozy_study'));
+      const activeScene = CVGame.state.scene || 'cozy_study';
+      sceneBg.classList.add('scene-' + activeScene);
+      if (activeScene === 'deep_space') sceneStars.start(); else sceneStars.stop();
+    } else {
+      sceneStars.stop();
     }
 
     const hideViz = (isWallpaper && !state.wallpaperShowViz) || isScene;
