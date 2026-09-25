@@ -24,5 +24,26 @@ contextBridge.exposeInMainWorld('codevibe', {
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on('update-status', listener);
     return () => ipcRenderer.removeListener('update-status', listener);
-  }
+  },
+
+  setGlobalHotkeys: (enabled) => ipcRenderer.invoke('set-global-hotkeys', enabled),
+  onHotkey: (callback) => {
+    const listener = (_event, action) => callback(action);
+    ipcRenderer.on('hotkey', listener);
+    return () => ipcRenderer.removeListener('hotkey', listener);
+  },
+
+  toggleMiniWidget: () => ipcRenderer.invoke('toggle-mini-widget'),
+  onMiniWidgetState: (callback) => {
+    const listener = (_event, open) => callback(open);
+    ipcRenderer.on('mini-widget-state', listener);
+    return () => ipcRenderer.removeListener('mini-widget-state', listener);
+  },
+  sendWidgetState: (payload) => ipcRenderer.send('widget-state-update', payload),
+  onWidgetStateUpdate: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('widget-state-update', listener);
+    return () => ipcRenderer.removeListener('widget-state-update', listener);
+  },
+  sendWidgetAction: (action) => ipcRenderer.send('widget-action', action)
 });

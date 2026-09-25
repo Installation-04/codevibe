@@ -65,7 +65,15 @@
     plexClientId: null,
     plexToken: null,
     plexServer: null,
-    playlists: []
+    playlists: [],
+    globalHotkeys: true,
+    gamepadNav: false,
+    breakReminderMin: 0,
+    ambientVolumes: { rain: 0, fire: 0, cafe: 0 },
+    ambientCustomTrack: null,
+    ambientCustomVolume: 60,
+    customThemes: {},
+    achievementView: 'list'
   };
 
   const ACCENT_SWATCHES = [
@@ -108,8 +116,12 @@
   }
 
   // ---------- Theme ----------
+  function getThemeDef(key) {
+    return THEMES[key] || state.customThemes[key] || THEMES.lofi;
+  }
+
   function applyTheme() {
-    const preset = THEMES[state.theme] || THEMES.lofi;
+    const preset = getThemeDef(state.theme);
     const bg1 = state.customBg1 || preset.bg1;
     const bg2 = state.customBg2 || preset.bg2;
     const accent = state.customAccent || preset.accent;
@@ -159,8 +171,70 @@
     });
   }
 
+  function renderCustomThemeGrid() {
+    const grid = document.getElementById('custom-theme-grid');
+    grid.innerHTML = '';
+    Object.entries(state.customThemes).forEach(([key, t]) => {
+      const card = document.createElement('div');
+      card.className = 'preset-card' + (state.theme === key ? ' active' : '');
+      card.style.background = `linear-gradient(135deg, ${t.bg1}, ${t.bg2})`;
+      card.style.borderColor = state.theme === key ? t.accent : 'transparent';
+      card.textContent = t.label;
+      card.addEventListener('click', () => {
+        state.theme = key;
+        state.customAccent = null;
+        state.customBg1 = null;
+        state.customBg2 = null;
+        applyTheme();
+        renderPresetGrid();
+        renderCustomThemeGrid();
+        syncColorInputs();
+        renderAccentSwatches();
+        saveState();
+      });
+      const del = document.createElement('button');
+      del.className = 'preset-card-delete';
+      del.textContent = '✕';
+      del.title = 'Delete this theme';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        delete state.customThemes[key];
+        if (state.theme === key) state.theme = 'lofi';
+        applyTheme();
+        renderPresetGrid();
+        renderCustomThemeGrid();
+        syncColorInputs();
+        renderAccentSwatches();
+        saveState();
+      });
+      card.appendChild(del);
+      grid.appendChild(card);
+    });
+  }
+
+  document.getElementById('save-custom-theme-btn').addEventListener('click', () => {
+    const nameInput = document.getElementById('custom-theme-name');
+    const name = nameInput.value.trim();
+    if (!name) return;
+    const preset = getThemeDef(state.theme);
+    const key = `custom_${Date.now()}`;
+    state.customThemes[key] = {
+      label: name,
+      bg1: state.customBg1 || preset.bg1,
+      bg2: state.customBg2 || preset.bg2,
+      accent: state.customAccent || preset.accent
+    };
+    state.theme = key;
+    nameInput.value = '';
+    applyTheme();
+    renderPresetGrid();
+    renderCustomThemeGrid();
+    saveState();
+    if (window.CVGame) CVGame.showToast({ icon: '🎨', title: 'Theme Saved', subtitle: name });
+  });
+
   function syncColorInputs() {
-    const preset = THEMES[state.theme] || THEMES.lofi;
+    const preset = getThemeDef(state.theme);
     document.getElementById('accent-color').value = state.customAccent || preset.accent;
     document.getElementById('bg-color-1').value = state.customBg1 || preset.bg1;
     document.getElementById('bg-color-2').value = state.customBg2 || preset.bg2;
@@ -169,7 +243,7 @@
   function renderAccentSwatches() {
     const row = document.getElementById('accent-swatch-row');
     row.innerHTML = '';
-    const preset = THEMES[state.theme] || THEMES.lofi;
+    const preset = getThemeDef(state.theme);
     const current = state.customAccent || preset.accent;
     ACCENT_SWATCHES.forEach((hex) => {
       const sw = document.createElement('div');
@@ -1657,12 +1731,355 @@
       } else if (status.state === 'error') {
         checkBtn.classList.remove('spinning');
         showTransient(`Update check failed: ${status.message}`, 4000);
+      } else if (status.state === 'whats-new') {
+        showWhatsNewModal(status.version, status.notes);
       } else {
         checkBtn.classList.remove('spinning');
         hideBanner();
       }
     });
   }
+
+  // ---------- "What's New" modal ----------
+  const whatsNewModal = document.getElementById('whats-new-modal');
+  const whatsNewTitle = document.getElementById('whats-new-title');
+  const whatsNewBody = document.getElementById('whats-new-body');
+
+  function showWhatsNewModal(version, notes) {
+    whatsNewTitle.textContent = `What's New in v${version}`;
+    whatsNewBody.textContent = notes && notes.trim() ? notes.trim() : 'This update includes fixes and improvements.';
+    whatsNewModal.dataset.version = version || '';
+    whatsNewModal.classList.remove('hidden');
+  }
+  function hideWhatsNewModal() {
+    whatsNewModal.classList.add('hidden');
+  }
+  document.getElementById('whats-new-close').addEventListener('click', hideWhatsNewModal);
+  document.getElementById('whats-new-ok-btn').addEventListener('click', hideWhatsNewModal);
+  document.getElementById('whats-new-github-btn').addEventListener('click', () => {
+    const version = whatsNewModal.dataset.version;
+    if (version && window.codevibe && window.codevibe.openExternal) {
+      window.codevibe.openExternal(`https://github.com/Installation-04/codevibe/releases/tag/v${version}`);
+    }
+  });
+  whatsNewModal.addEventListener('click', (e) => {
+    if (e.target === whatsNewModal) hideWhatsNewModal();
+  });
+
+  // ---------- Global hotkeys ----------
+  // Fires for both a real OS-level hotkey and a button press relayed from
+  // the floating mini-widget (main.js forwards widget-action onto the same
+  // 'hotkey' channel), so one handler covers both sources.
+  if (window.codevibe && window.codevibe.onHotkey) {
+    window.codevibe.onHotkey((action) => {
+      if (action === 'play-pause') playBtn.click();
+      else if (action === 'next') document.getElementById('next-btn').click();
+      else if (action === 'prev') document.getElementById('prev-btn').click();
+      else if (action === 'focus-toggle') { if (focusTimer.running) pauseFocusTimer(); else startFocusTimer(); }
+    });
+  }
+
+  const globalHotkeysToggle = document.getElementById('global-hotkeys-toggle');
+  function applyGlobalHotkeysSetting() {
+    if (window.codevibe && window.codevibe.setGlobalHotkeys) {
+      window.codevibe.setGlobalHotkeys(state.globalHotkeys);
+    }
+  }
+  globalHotkeysToggle.addEventListener('change', () => {
+    state.globalHotkeys = globalHotkeysToggle.checked;
+    applyGlobalHotkeysSetting();
+    saveState();
+  });
+
+  // ---------- Floating mini-widget ----------
+  const miniWidgetBtn = document.getElementById('mini-widget-btn');
+  if (miniWidgetBtn && window.codevibe && window.codevibe.toggleMiniWidget) {
+    miniWidgetBtn.addEventListener('click', () => window.codevibe.toggleMiniWidget());
+  }
+  if (window.codevibe && window.codevibe.onMiniWidgetState) {
+    window.codevibe.onMiniWidgetState((open) => {
+      miniWidgetBtn.textContent = open ? 'Close Floating Widget' : 'Open Floating Widget';
+      // The next tick's avatar SVG is only (re-)sent when it differs from the
+      // last one pushed — reset that cache so a freshly opened widget (which
+      // has nothing yet) gets it immediately instead of waiting for the
+      // avatar to actually change.
+      if (open) { lastWidgetAvatarKey = null; pushWidgetState(); }
+    });
+  }
+
+  let lastWidgetAvatarKey = null;
+  function pushWidgetState() {
+    if (!window.codevibe || !window.codevibe.sendWidgetState) return;
+    const avatarKey = window.CVGame ? JSON.stringify(CVGame.state.avatar) : null;
+    const payload = {
+      trackName: npTitle.textContent,
+      playing: !audioEl.paused && mode !== 'idle',
+      focusTime: document.getElementById('focus-time').textContent,
+      focusMode: document.getElementById('focus-mode-label').textContent
+    };
+    if (window.CVAvatar && window.CVGame && avatarKey !== lastWidgetAvatarKey) {
+      payload.avatarSvg = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
+      lastWidgetAvatarKey = avatarKey;
+    }
+    window.codevibe.sendWidgetState(payload);
+  }
+  setInterval(pushWidgetState, 1000);
+
+  // ---------- Profile export / import ----------
+  function exportProfile() {
+    const settings = { ...state };
+    SECURE_FIELDS.forEach((f) => delete settings[f]);
+    let game = null;
+    try { game = JSON.parse(localStorage.getItem('codevibe.game.v1') || 'null'); } catch { /* leave null */ }
+    const payload = { codevibeProfile: 1, exportedAt: new Date().toISOString(), settings, game };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `codevibe-profile-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importProfile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data;
+      try { data = JSON.parse(reader.result); } catch {
+        if (window.CVGame) CVGame.showToast({ icon: '⚠️', title: 'Import failed', subtitle: 'That file is not a valid CodeVibe profile.' });
+        return;
+      }
+      if (!data || data.codevibeProfile !== 1 || !data.settings) {
+        if (window.CVGame) CVGame.showToast({ icon: '⚠️', title: 'Import failed', subtitle: 'Unrecognized profile format.' });
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.settings));
+      if (data.game) localStorage.setItem('codevibe.game.v1', JSON.stringify(data.game));
+      location.reload();
+    };
+    reader.readAsText(file);
+  }
+
+  // ---------- Ambient soundscape (procedural, no external audio files) ----------
+  let ambientCtx = null;
+  const ambientLayers = {};
+
+  function ensureAmbientCtx() {
+    if (!ambientCtx) ambientCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return ambientCtx;
+  }
+
+  function makeNoiseBuffer(ctx, seconds, brown) {
+    const size = Math.floor(ctx.sampleRate * seconds);
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < size; i++) {
+      const white = Math.random() * 2 - 1;
+      if (brown) { last = (last + 0.02 * white) / 1.02; data[i] = last * 3.5; }
+      else data[i] = white;
+    }
+    return buffer;
+  }
+
+  function buildAmbientLayer(kind) {
+    const ctx = ensureAmbientCtx();
+    const src = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const shaped = ctx.createGain();
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+
+    if (kind === 'rain') {
+      src.buffer = makeNoiseBuffer(ctx, 3, false);
+      filter.type = 'bandpass'; filter.frequency.value = 5000; filter.Q.value = 0.6;
+      shaped.gain.value = 1;
+    } else if (kind === 'fire') {
+      src.buffer = makeNoiseBuffer(ctx, 3, true);
+      filter.type = 'lowpass'; filter.frequency.value = 700;
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 4;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 0.15;
+      shaped.gain.value = 0.85;
+      lfo.connect(lfoGain).connect(shaped.gain);
+      lfo.start();
+    } else { // cafe
+      src.buffer = makeNoiseBuffer(ctx, 3, false);
+      filter.type = 'bandpass'; filter.frequency.value = 1200; filter.Q.value = 0.4;
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 0.15;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 0.1;
+      shaped.gain.value = 0.9;
+      lfo.connect(lfoGain).connect(shaped.gain);
+      lfo.start();
+    }
+
+    src.loop = true;
+    src.connect(filter).connect(shaped).connect(gain).connect(ctx.destination);
+    src.start();
+    return { gain };
+  }
+
+  function setAmbientVolume(kind, volume) {
+    if (!ambientLayers[kind]) ambientLayers[kind] = buildAmbientLayer(kind);
+    const ctx = ensureAmbientCtx();
+    const target = (volume / 100) * 0.35; // capped so it stays ambient, never overpowers the music
+    ambientLayers[kind].gain.gain.setTargetAtTime(target, ctx.currentTime, 0.3);
+  }
+
+  ['rain', 'fire', 'cafe'].forEach((kind) => {
+    const el = document.getElementById(`ambient-${kind}`);
+    el.addEventListener('input', () => {
+      state.ambientVolumes[kind] = Number(el.value);
+      setAmbientVolume(kind, Number(el.value));
+      saveState();
+    });
+  });
+
+  // User-supplied ambient track (extra mixer layer beyond the procedural ones)
+  let ambientCustomAudio = null;
+
+  function applyAmbientCustomTrack(track, volume) {
+    document.getElementById('ambient-custom-row').classList.toggle('hidden', !track);
+    document.getElementById('ambient-custom-clear-btn').classList.toggle('hidden', !track);
+    document.getElementById('ambient-custom-label').textContent = track ? track.name : '';
+    document.getElementById('ambient-custom').value = volume;
+  }
+
+  document.getElementById('ambient-custom-btn').addEventListener('click', async () => {
+    if (!window.codevibe || !window.codevibe.pickAudioFiles) return;
+    const files = await window.codevibe.pickAudioFiles();
+    if (!files.length) return;
+    const file = files[0];
+    const url = await toFileUrl(file.path);
+    if (ambientCustomAudio) ambientCustomAudio.pause();
+    ambientCustomAudio = new Audio(url);
+    ambientCustomAudio.loop = true;
+    ambientCustomAudio.volume = state.ambientCustomVolume / 100;
+    ambientCustomAudio.play().catch(() => {});
+    state.ambientCustomTrack = { path: file.path, name: file.name };
+    applyAmbientCustomTrack(state.ambientCustomTrack, state.ambientCustomVolume);
+    saveState();
+  });
+  document.getElementById('ambient-custom').addEventListener('input', (e) => {
+    state.ambientCustomVolume = Number(e.target.value);
+    if (ambientCustomAudio) ambientCustomAudio.volume = state.ambientCustomVolume / 100;
+    saveState();
+  });
+  document.getElementById('ambient-custom-clear-btn').addEventListener('click', () => {
+    if (ambientCustomAudio) { ambientCustomAudio.pause(); ambientCustomAudio = null; }
+    state.ambientCustomTrack = null;
+    applyAmbientCustomTrack(null, state.ambientCustomVolume);
+    saveState();
+  });
+
+  // ---------- Gentle break reminders ----------
+  let breakReminderElapsedMin = 0;
+  setInterval(() => {
+    if (!state.breakReminderMin) { breakReminderElapsedMin = 0; return; }
+    breakReminderElapsedMin += 1;
+    if (breakReminderElapsedMin >= state.breakReminderMin) {
+      breakReminderElapsedMin = 0;
+      if (window.CVGame) CVGame.showToast({ icon: '🧘', title: 'Time for a break', subtitle: 'Stretch, hydrate, rest your eyes for a moment.' });
+    }
+  }, 60000);
+
+  document.querySelectorAll('#break-reminder-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#break-reminder-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.breakReminderMin = Number(chip.dataset.breakmin);
+      breakReminderElapsedMin = 0;
+      saveState();
+    });
+  });
+
+  // ---------- Gamepad navigation ----------
+  let gamepadIndex = -1;
+  let gamepadPrevButtons = [];
+
+  function getGamepadNavElements() {
+    const panel = document.querySelector('.tab-panel.active');
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll('button, input[type="text"], input[type="color"], input[type="range"], .preset-card, .item-card, .swatch'))
+      .filter((el) => el.offsetParent !== null && !el.disabled);
+  }
+
+  function highlightGamepadSelection() {
+    document.querySelectorAll('.gamepad-selected').forEach((el) => el.classList.remove('gamepad-selected'));
+    const els = getGamepadNavElements();
+    if (!els.length) { gamepadIndex = -1; return; }
+    gamepadIndex = Math.max(0, Math.min(gamepadIndex, els.length - 1));
+    els[gamepadIndex].classList.add('gamepad-selected');
+    els[gamepadIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  function moveGamepadSelection(delta) {
+    const els = getGamepadNavElements();
+    if (!els.length) return;
+    gamepadIndex = ((gamepadIndex + delta) % els.length + els.length) % els.length;
+    highlightGamepadSelection();
+  }
+
+  function activateGamepadSelection() {
+    const els = getGamepadNavElements();
+    if (els[gamepadIndex]) els[gamepadIndex].click();
+  }
+
+  function switchGamepadTab(delta) {
+    const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+    const activeIdx = tabs.findIndex((t) => t.classList.contains('active'));
+    const next = ((activeIdx + delta) % tabs.length + tabs.length) % tabs.length;
+    tabs[next].click();
+    gamepadIndex = 0;
+    highlightGamepadSelection();
+  }
+
+  function pollGamepad() {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const pad = pads && pads[0];
+    if (!pad) { gamepadPrevButtons = []; return; }
+    const buttons = pad.buttons.map((b) => b.pressed);
+    const rising = (i) => buttons[i] && !gamepadPrevButtons[i];
+    if (rising(12)) moveGamepadSelection(-1); // D-pad up
+    if (rising(13)) moveGamepadSelection(1);  // D-pad down
+    if (rising(14)) switchGamepadTab(-1);     // D-pad left
+    if (rising(15)) switchGamepadTab(1);      // D-pad right
+    if (rising(4)) switchGamepadTab(-1);      // L1
+    if (rising(5)) switchGamepadTab(1);       // R1
+    if (rising(0)) activateGamepadSelection(); // A
+    gamepadPrevButtons = buttons;
+  }
+
+  setInterval(() => { if (state.gamepadNav) pollGamepad(); }, 100);
+
+  document.getElementById('gamepad-nav-toggle').addEventListener('change', (e) => {
+    state.gamepadNav = e.target.checked;
+    if (state.gamepadNav) { gamepadIndex = 0; highlightGamepadSelection(); }
+    else document.querySelectorAll('.gamepad-selected').forEach((el) => el.classList.remove('gamepad-selected'));
+    saveState();
+  });
+
+  window.addEventListener('gamepadconnected', () => {
+    if (window.CVGame && state.gamepadNav) {
+      CVGame.showToast({ icon: '🎮', title: 'Controller connected', subtitle: 'D-pad to navigate, A to select.' });
+    }
+  });
+
+  document.getElementById('export-profile-btn').addEventListener('click', exportProfile);
+  document.getElementById('import-profile-btn').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.addEventListener('change', () => {
+      if (input.files && input.files[0]) importProfile(input.files[0]);
+    });
+    input.click();
+  });
 
   // ---------- Gamification: Avatar / Shop / Progress ----------
   const coinBadge = document.getElementById('coin-badge');
@@ -1888,6 +2305,65 @@
     renderQuestList('daily-quest-list', CVGame.DAILY_QUESTS, s.dailyProgress, s.dailyQuestsClaimed);
     renderQuestList('weekly-quest-list', CVGame.WEEKLY_QUESTS, s.weeklyProgress, s.weeklyQuestsClaimed);
     renderHistoryChart();
+    renderStreakHeatmap();
+    renderTrophyCase();
+  }
+
+  // ---------- Trophy case ----------
+  function renderTrophyCase() {
+    if (!window.CVGame) return;
+    const s = CVGame.state;
+    const container = document.getElementById('trophy-case');
+    container.innerHTML = '';
+    CVGame.ACHIEVEMENTS.forEach((a) => {
+      const unlocked = s.achievementsUnlocked.includes(a.id);
+      const badge = document.createElement('div');
+      badge.className = 'trophy-badge' + (unlocked ? ' unlocked' : '');
+      badge.title = unlocked ? `${a.name} — ${a.desc}` : `Locked — ${a.desc}`;
+      badge.innerHTML = '<span class="trophy-icon"></span><span class="trophy-name"></span>';
+      badge.querySelector('.trophy-icon').textContent = unlocked ? a.icon : '🔒';
+      badge.querySelector('.trophy-name').textContent = unlocked ? a.name : '???';
+      container.appendChild(badge);
+    });
+  }
+
+  document.querySelectorAll('[data-achview]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('[data-achview]').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.achievementView = chip.dataset.achview;
+      document.getElementById('achievement-list').classList.toggle('hidden', state.achievementView !== 'list');
+      document.getElementById('trophy-case').classList.toggle('hidden', state.achievementView !== 'trophy');
+      saveState();
+    });
+  });
+
+  // ---------- Streak heatmap ----------
+  function renderStreakHeatmap() {
+    if (!window.CVGame) return;
+    const container = document.getElementById('streak-heatmap');
+    container.innerHTML = '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rangeDays = 56;
+    const start = new Date(today);
+    start.setDate(start.getDate() - (rangeDays - 1));
+    start.setDate(start.getDate() - start.getDay()); // align to the preceding Sunday
+
+    const minutesByDate = CVGame.state.dailyMinutes;
+    const max = Math.max(1, ...Object.values(minutesByDate));
+
+    const cursor = new Date(start);
+    while (cursor <= today) {
+      const key = cursor.toISOString().slice(0, 10);
+      const mins = minutesByDate[key] || 0;
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      cell.dataset.level = mins > 0 ? String(Math.min(4, Math.ceil((mins / max) * 4))) : '0';
+      cell.title = `${cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}: ${mins} min`;
+      container.appendChild(cell);
+      cursor.setDate(cursor.getDate() + 1);
+    }
   }
 
   function renderQuestList(listId, quests, progressObj, claimed) {
@@ -2160,6 +2636,7 @@
 
     applyTheme();
     renderPresetGrid();
+    renderCustomThemeGrid();
     syncColorInputs();
     renderAccentSwatches();
     renderTrackList();
@@ -2224,6 +2701,37 @@
     });
     document.getElementById('clock-size').value = state.clockSize;
     applyClockAppearance();
+
+    globalHotkeysToggle.checked = state.globalHotkeys;
+    applyGlobalHotkeysSetting();
+    document.getElementById('gamepad-nav-toggle').checked = state.gamepadNav;
+
+    document.querySelectorAll('#break-reminder-row .chip').forEach((c) => {
+      c.classList.toggle('active', Number(c.dataset.breakmin) === state.breakReminderMin);
+    });
+
+    document.getElementById('ambient-rain').value = state.ambientVolumes.rain;
+    document.getElementById('ambient-fire').value = state.ambientVolumes.fire;
+    document.getElementById('ambient-cafe').value = state.ambientVolumes.cafe;
+    ['rain', 'fire', 'cafe'].forEach((kind) => {
+      if (state.ambientVolumes[kind] > 0) setAmbientVolume(kind, state.ambientVolumes[kind]);
+    });
+    applyAmbientCustomTrack(state.ambientCustomTrack, state.ambientCustomVolume);
+    if (state.ambientCustomTrack) {
+      toFileUrl(state.ambientCustomTrack.path).then((url) => {
+        if (!url) return;
+        ambientCustomAudio = new Audio(url);
+        ambientCustomAudio.loop = true;
+        ambientCustomAudio.volume = state.ambientCustomVolume / 100;
+        ambientCustomAudio.play().catch(() => {});
+      });
+    }
+
+    document.querySelectorAll('[data-achview]').forEach((c) => {
+      c.classList.toggle('active', c.dataset.achview === state.achievementView);
+    });
+    document.getElementById('achievement-list').classList.toggle('hidden', state.achievementView !== 'list');
+    document.getElementById('trophy-case').classList.toggle('hidden', state.achievementView !== 'trophy');
   }
 
   init();

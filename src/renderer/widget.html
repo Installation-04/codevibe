@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; img-src 'self' data:; connect-src 'self';" />
+<title>CodeVibe Widget</title>
+<link rel="stylesheet" href="widget.css" />
+</head>
+<body>
+  <div id="widget-drag-bar" class="widget-drag-bar">
+    <span class="widget-title">CodeVibe</span>
+    <button id="widget-close-btn" class="widget-close-btn" title="Close">✕</button>
+  </div>
+  <div id="widget-avatar" class="widget-avatar"></div>
+  <div class="widget-track" id="widget-track">Nothing playing</div>
+  <div class="widget-focus">
+    <span id="widget-focus-time">25:00</span>
+    <span class="widget-focus-mode" id="widget-focus-mode">Focus</span>
+  </div>
+  <div class="widget-controls">
+    <button id="widget-prev-btn" class="widget-icon-btn" title="Previous">⏮</button>
+    <button id="widget-play-btn" class="widget-icon-btn widget-play" title="Play/Pause">▶</button>
+    <button id="widget-next-btn" class="widget-icon-btn" title="Next">⏭</button>
+  </div>
+  <script src="widget.js"></script>
+</body>
+</html>
