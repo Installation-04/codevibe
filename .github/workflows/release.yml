@@ -52,13 +52,27 @@ jobs:
       # here — and always generate a description (a "What's Changed" summary
       # of everything merged since the previous release) at the same time,
       # since nothing else sets one.
+      #
+      # A draft release only has its tag_name set as a display field — the
+      # underlying git tag ref isn't created until the release is actually
+      # published, and creating that ref is itself a race between the three
+      # parallel `build` jobs above (each running `--publish always`), which
+      # can leave the tag ref missing entirely even though the draft release
+      # exists. So the release is looked up via the general releases list
+      # (which includes drafts, tag ref or not) rather than the tag-specific
+      # lookup endpoint (which 404s until a real tag ref exists) — PATCHing
+      # draft=false is what actually creates the tag ref, from target_commitish.
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
           REPO="${{ github.repository }}"
-          RELEASE_ID=$(gh api "repos/$REPO/releases/tags/v$VERSION" --jq .id)
+          RELEASE_ID=$(gh api "repos/$REPO/releases" --paginate --jq ".[] | select(.tag_name == \"v$VERSION\") | .id" | head -n1)
+          if [ -z "$RELEASE_ID" ]; then
+            echo "::error::No draft release found with tag_name v$VERSION"
+            exit 1
+          fi
           gh api "repos/$REPO/releases/$RELEASE_ID" -X PATCH \
             -F draft=false \
             -F generate_release_notes=true
