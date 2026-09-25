@@ -5,6 +5,13 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('fonts/press-start-2p.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 * { box-sizing: border-box; }
 html, body {
@@ -20,6 +27,7 @@ html, body {
 body {
   --bg-1: #241726;
   --bg-2: #0d0714;
+  --bg-mid: color-mix(in srgb, var(--bg-1) 50%, var(--bg-2) 50%);
   --accent: #ff9f6e;
   --accent-soft: rgba(255, 159, 110, 0.25);
   --panel-blur: 18px;
@@ -33,26 +41,26 @@ body {
   inset: 0;
   z-index: 0;
   background: radial-gradient(circle at 20% 20%, var(--accent-soft), transparent 45%),
-              linear-gradient(160deg, var(--bg-1), var(--bg-2));
+              linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
   transition: background 0.6s ease;
 }
 #bg-glow.pattern-grid {
   background:
     repeating-linear-gradient(0deg, var(--accent-soft) 0, transparent 1px, transparent 48px, var(--accent-soft) 49px),
     repeating-linear-gradient(90deg, var(--accent-soft) 0, transparent 1px, transparent 48px, var(--accent-soft) 49px),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
   background-size: 100% 100%, 100% 100%, 100% 100%;
   opacity: 1;
 }
 #bg-glow.pattern-vignette {
   background:
     radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.65) 100%),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
 }
 #bg-glow.pattern-noise {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E"),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-1) 35%, var(--bg-mid) 35%, var(--bg-mid) 70%, var(--bg-2) 70%, var(--bg-2) 100%);
 }
 
 #wallpaper-bg {
@@ -608,7 +616,16 @@ input[type="range"] {
   box-shadow: inset 0 0 30px rgba(0,0,0,0.3), 0 0 24px var(--accent-soft);
   padding: 8px;
 }
-.avatar-preview svg, .avatar-widget-canvas svg { width: 100%; height: 100%; display: block; }
+.avatar-widget-canvas { display: block; width: 100%; height: 100%; }
+.avatar-preview svg, .avatar-widget-canvas svg,
+.avatar-preview canvas, .avatar-widget-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
 
 .avatar-widget {
   position: absolute;
@@ -645,7 +662,8 @@ input[type="range"] {
   50% { opacity: 0.85; transform: translateX(-50%) scale(1.18); }
 }
 
-.avatar-widget.aura-neonglow .avatar-widget-canvas svg {
+.avatar-widget.aura-neonglow .avatar-widget-canvas svg,
+.avatar-widget.aura-neonglow .avatar-widget-canvas canvas {
   animation: aura-neon-pulse 2.4s ease-in-out infinite;
 }
 @keyframes aura-neon-pulse {
@@ -704,15 +722,19 @@ input[type="range"] {
 #scene-bg.scene-cozy_study {
   background: radial-gradient(circle at 25% 85%, rgba(255,180,120,0.28), transparent 50%),
               radial-gradient(circle at 80% 15%, rgba(255,220,160,0.12), transparent 40%),
-              linear-gradient(160deg, #3a2418, #150c07);
+              linear-gradient(160deg, #3a2418 0%, #3a2418 35%, #241408 35%, #241408 70%, #150c07 70%, #150c07 100%);
 }
 #scene-bg.scene-zen_garden {
   background: radial-gradient(circle at 50% 15%, rgba(200,255,230,0.35), transparent 45%),
               radial-gradient(circle at 80% 75%, rgba(160,255,210,0.12), transparent 45%),
-              linear-gradient(160deg, #1a4f42, #0a2620);
+              linear-gradient(160deg, #1a4f42 0%, #1a4f42 35%, #123a30 35%, #123a30 70%, #0a2620 70%, #0a2620 100%);
 }
 #scene-bg.scene-beach_sunset {
-  background: linear-gradient(180deg, #ffb37a 0%, #ff7f97 32%, #7a4a82 68%, #241738 100%);
+  background: linear-gradient(180deg,
+    #ffb37a 0%, #ffb37a 22%,
+    #ff7f97 22%, #ff7f97 50%,
+    #7a4a82 50%, #7a4a82 78%,
+    #241738 78%, #241738 100%);
 }
 #scene-bg.scene-enchanted_forest {
   background: radial-gradient(1px 1px at 20% 30%, #d6ff8a, transparent),
@@ -722,14 +744,14 @@ input[type="range"] {
               radial-gradient(1px 1px at 85% 40%, #d6ff8a, transparent),
               radial-gradient(circle at 25% 20%, rgba(140,110,255,0.16), transparent 40%),
               radial-gradient(circle at 80% 80%, rgba(60,200,140,0.14), transparent 45%),
-              linear-gradient(160deg, #071f14, #01100a);
+              linear-gradient(160deg, #071f14 0%, #071f14 35%, #04160e 35%, #04160e 70%, #01100a 70%, #01100a 100%);
   animation: scene-twinkle 2.2s ease-in-out infinite;
 }
 #scene-bg.scene-cyberpunk_skyline {
   background: repeating-linear-gradient(90deg, rgba(0,229,255,0.06) 0 2px, transparent 2px 64px),
               radial-gradient(circle at 30% 70%, rgba(255,32,121,0.18), transparent 40%),
               radial-gradient(circle at 75% 30%, rgba(0,229,255,0.16), transparent 40%),
-              linear-gradient(180deg, #150826, #02010a);
+              linear-gradient(180deg, #150826 0%, #150826 35%, #0a0415 35%, #0a0415 70%, #02010a 70%, #02010a 100%);
   animation: scene-flicker 5s ease-in-out infinite;
 }
 @keyframes scene-flicker {
@@ -975,7 +997,7 @@ input[type="range"] {
 
 /* Deep Space — layered nebula + parallax starfield canvas + planet + docking platform */
 #scene-bg.scene-deep_space {
-  background: linear-gradient(180deg, #060716 0%, #02030a 55%, #000000 100%);
+  background: linear-gradient(180deg, #060716 0%, #060716 35%, #02030a 35%, #02030a 70%, #000000 70%, #000000 100%);
   overflow: hidden;
 }
 #scene-bg.scene-deep_space::before,
@@ -1186,7 +1208,14 @@ input[type="range"] {
   border: 1px solid rgba(255,255,255,0.1);
   padding: 6px;
 }
-.pet-preview svg { width: 100%; height: 100%; display: block; }
+.pet-preview svg, .pet-preview canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
 .pet-widget-canvas {
   position: absolute;
   right: -22px;
@@ -1196,7 +1225,14 @@ input[type="range"] {
   animation: pet-bob 3.2s ease-in-out infinite;
   animation-delay: 0.6s;
 }
-.pet-widget-canvas svg { width: 100%; height: 100%; display: block; }
+.pet-widget-canvas svg, .pet-widget-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
 @keyframes pet-bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
@@ -1359,3 +1395,78 @@ input[type="range"] {
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
+
+/* ---------- Pixel-art platform chrome ---------- */
+/* Square everything off — no rounded corners, no blurred glow shadows, just
+   hard pixel edges and offset drop-shadows like an 8-bit game's UI frame. */
+.brand-dot,
+.brand-coins,
+.icon-btn-sm,
+.update-banner,
+.tab-btn,
+.btn, .btn-ghost,
+.track-item,
+.field-input,
+.stream-input-row input,
+.preset-card,
+.preset-card-delete,
+.chip,
+#wallpaper-controls, #bg-pattern-controls,
+.swatch, .swatch.active,
+.clock-widget,
+#stream-frame-wrap,
+.icon-btn.play,
+.transport,
+.item-card,
+.avatar-preview,
+.stat-card,
+.xp-bar, .xp-bar-fill,
+.achievement-item,
+.toast,
+.pet-preview,
+.pet-widget-canvas,
+.focus-widget,
+.history-bar, .history-bar-fill,
+.modal-box,
+.heatmap-cell,
+.trophy-badge {
+  border-radius: 0 !important;
+}
+::-webkit-scrollbar-thumb { border-radius: 0; }
+
+.tab-btn, .chip, .field-input, .stream-input-row input {
+  border-width: 2px;
+}
+.avatar-preview, .pet-preview { border-width: 2px; }
+
+.btn, .btn-ghost {
+  border: 2px solid rgba(0,0,0,0.5);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+  transition: box-shadow 0.1s ease, transform 0.1s ease, filter 0.15s ease;
+}
+.btn:hover { box-shadow: 3px 3px 0 rgba(0,0,0,0.5); }
+.btn:active { box-shadow: 1px 1px 0 rgba(0,0,0,0.5); transform: translate(2px, 2px); }
+
+.tab-btn.active, .chip.active {
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.45);
+}
+.item-card.active {
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+}
+
+#sidebar { box-shadow: 4px 0 0 rgba(0,0,0,0.4); }
+.transport { border: 2px solid rgba(0,0,0,0.45); box-shadow: 3px 3px 0 rgba(0,0,0,0.4); }
+.clock-widget.style-boxed { box-shadow: 3px 3px 0 rgba(0,0,0,0.4); }
+.modal-box { border: 2px solid rgba(0,0,0,0.5); box-shadow: 4px 4px 0 rgba(0,0,0,0.5); }
+
+/* A bitmap display face for short, prominent labels — it reads great at a
+   handful of characters but is unreadable/overflows at paragraph sizes, so
+   body copy, hints, and long button/tab labels keep the regular UI font. */
+.brand-name, .tab-panel h3, .section-header-row h3, .modal-header h2,
+.stat-value, .np-title {
+  font-family: 'Press Start 2P', 'Orbitron', monospace;
+}
+.brand-name { font-size: 13px; letter-spacing: 0; }
+.stat-value { font-size: 14px; }
+.modal-header h2 { font-size: 13px; }
+.np-title { font-size: 15px; }

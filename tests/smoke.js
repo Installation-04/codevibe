@@ -212,8 +212,20 @@ async function testGamificationFlow(browser) {
   assert.equal(afterBuy.avatar.aura, 'neonglow', 'buying an aura should equip it');
   assert.equal(afterBuy.coins, 2000 - 130 - 180 - 170 - 110, 'coins should be debited by the exact item costs');
 
-  const svgLength = await page.evaluate(() => document.getElementById('avatar-preview').innerHTML.length);
-  assert.ok(svgLength > 100, 'avatar preview should render a non-trivial SVG after customization');
+  // Avatar/pet previews are now rasterized to a small canvas and scaled up
+  // with image-rendering: pixelated (real pixel art instead of a redrawn
+  // vector look) — the render is async, so give it a beat, then check the
+  // canvas actually has non-transparent pixels rather than checking markup.
+  await page.waitForTimeout(150);
+  const avatarPixelInfo = await page.evaluate(() => {
+    const canvas = document.querySelector('#avatar-preview canvas');
+    if (!canvas) return null;
+    const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let opaque = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 0) opaque++;
+    return { width: canvas.width, height: canvas.height, opaque };
+  });
+  assert.ok(avatarPixelInfo && avatarPixelInfo.width > 0 && avatarPixelInfo.opaque > 50, 'avatar preview should render a non-trivial pixelated canvas after customization');
 
   // Buying something already-affordable-but-unaffordable-now should fail cleanly
   // (no crash, no deduction) and surface a toast.
@@ -237,8 +249,16 @@ async function testGamificationFlow(browser) {
   await page.click('#pet-color-row .swatch:nth-child(3)');
   const petState = await page.evaluate(() => ({ ...CVGame.state.pet }));
   assert.equal(petState.species, 'dragon', 'buying a pet species should equip it');
-  const petSvgLength = await page.evaluate(() => document.getElementById('pet-preview').innerHTML.length);
-  assert.ok(petSvgLength > 50, 'pet preview should render a non-trivial SVG');
+  await page.waitForTimeout(150);
+  const petPixelInfo = await page.evaluate(() => {
+    const canvas = document.querySelector('#pet-preview canvas');
+    if (!canvas) return null;
+    const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let opaque = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 0) opaque++;
+    return { width: canvas.width, height: canvas.height, opaque };
+  });
+  assert.ok(petPixelInfo && petPixelInfo.width > 0 && petPixelInfo.opaque > 30, 'pet preview should render a non-trivial pixelated canvas');
 
   // Focus timer — start/pause/reset should not crash, and completing a
   // session (via the same API the real countdown calls) should award coins

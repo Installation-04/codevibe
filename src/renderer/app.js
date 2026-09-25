@@ -2184,18 +2184,25 @@
     avatarWidgetEl.classList.toggle('hidden', !CVGame.state.avatarWidgetVisible);
   }
 
-  function refreshAvatarVisuals() {
+  // Low-res target sizes for the pixelated avatar/pet render — chunky enough
+  // to read as real pixel art, big enough to keep faces/silhouettes legible.
+  const AVATAR_PIXEL_W = 60, AVATAR_PIXEL_H = 66;
+  const PET_PIXEL_SIZE = 34;
+
+  async function refreshAvatarVisuals() {
     if (!window.CVGame) return;
     // Each target gets its own buildAvatarSVG() call (not a shared string) so
     // the gradient/def ids it embeds are unique per <svg> in the document —
     // reusing one render for both would leave two elements with the same id,
     // which breaks fill="url(#id)" resolution on whichever one isn't first.
-    avatarPreviewEl.innerHTML = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
-    avatarWidgetCanvas.innerHTML = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
     applyAvatarAura();
     updateCoinBadge();
-    petPreviewEl.innerHTML = CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color);
-    petWidgetCanvas.innerHTML = CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color);
+    await Promise.all([
+      renderPixelated(avatarPreviewEl, CVAvatar.buildAvatarSVG(CVGame.state.avatar), AVATAR_PIXEL_W, AVATAR_PIXEL_H),
+      renderPixelated(avatarWidgetCanvas, CVAvatar.buildAvatarSVG(CVGame.state.avatar), AVATAR_PIXEL_W, AVATAR_PIXEL_H),
+      renderPixelated(petPreviewEl, CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color), PET_PIXEL_SIZE, PET_PIXEL_SIZE),
+      renderPixelated(petWidgetCanvas, CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color), PET_PIXEL_SIZE, PET_PIXEL_SIZE)
+    ]);
   }
 
   function createItemCard({ label, owned, equipped, cost, onClick }) {
@@ -2502,6 +2509,26 @@
       img.onerror = reject;
       img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
     });
+  }
+
+  // Renders the (smooth, vector) avatar/pet SVG down onto a small low-res
+  // canvas, then lets CSS `image-rendering: pixelated` blow it back up —
+  // turning the existing scalable artwork into genuine blocky pixel art
+  // without hand-redrawing every hairstyle/outfit/accessory as pixel shapes.
+  async function renderPixelated(container, svgString, pw, ph) {
+    const img = await loadSvgImage(svgString);
+    let canvas = container.querySelector('canvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      container.innerHTML = '';
+      container.appendChild(canvas);
+    }
+    canvas.width = pw;
+    canvas.height = ph;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, pw, ph);
+    ctx.drawImage(img, 0, 0, pw, ph);
   }
 
   async function exportVibeCard() {
