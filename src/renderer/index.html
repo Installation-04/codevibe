@@ -46,7 +46,23 @@
           <button id="add-folder-btn" class="btn btn-ghost">Add Folder</button>
         </div>
         <ul id="track-list" class="track-list"></ul>
-        <p class="hint" id="library-hint">Add local mp3, wav, flac, ogg, m4a, aac or opus files to start the visualizer.</p>
+        <p class="hint" id="library-hint">Add local mp3, wav, flac, ogg, m4a, aac or opus files to start the visualizer. Drag items to reorder.</p>
+
+        <h3>Playlists</h3>
+        <div class="panel-actions">
+          <button id="save-playlist-btn" class="btn btn-ghost">Save Current as Playlist</button>
+        </div>
+        <ul id="playlist-list" class="track-list playlist-list"></ul>
+
+        <h3>Sleep Timer</h3>
+        <div class="chip-row" id="sleep-timer-row">
+          <button class="chip active-off" data-sleepmin="15">15m</button>
+          <button class="chip active-off" data-sleepmin="30">30m</button>
+          <button class="chip active-off" data-sleepmin="45">45m</button>
+          <button class="chip active-off" data-sleepmin="60">60m</button>
+          <button class="chip active" data-sleepmin="0">Off</button>
+        </div>
+        <p class="hint" id="sleep-timer-status"></p>
       </section>
 
       <section class="tab-panel" id="panel-stream">
@@ -54,6 +70,19 @@
         <div class="stream-input-row">
           <input id="stream-url" type="text" placeholder="Paste a music link…" />
           <button id="stream-load-btn" class="btn">Load</button>
+        </div>
+
+        <h3>Gaming Lofi</h3>
+        <p class="hint">Opens a YouTube search in your browser — copy a link you like back into the field above to play it here.</p>
+        <div class="chip-row" id="gaming-lofi-row">
+          <button class="chip active-off" data-lofi-query="Skyrim">Skyrim</button>
+          <button class="chip active-off" data-lofi-query="Halo">Halo</button>
+          <button class="chip active-off" data-lofi-query="Zelda">Zelda</button>
+          <button class="chip active-off" data-lofi-query="Final Fantasy">Final Fantasy</button>
+          <button class="chip active-off" data-lofi-query="Fallout">Fallout</button>
+          <button class="chip active-off" data-lofi-query="Elden Ring">Elden Ring</button>
+          <button class="chip active-off" data-lofi-query="Minecraft">Minecraft</button>
+          <button class="chip active-off" data-lofi-query="Witcher">Witcher</button>
         </div>
         <p class="hint hint-error hidden" id="stream-error"></p>
         <button id="stream-open-external-btn" class="btn btn-ghost hidden">Open in Browser Instead</button>
@@ -134,8 +163,24 @@
         <h3>Accessory</h3>
         <div class="item-grid" id="avatar-accessory-row"></div>
 
+        <h3>Hat</h3>
+        <div class="item-grid" id="avatar-hat-row"></div>
+        <h3>Hat Color</h3>
+        <div class="swatch-row" id="avatar-hatcolor-row"></div>
+
+        <h3>Held Item</h3>
+        <div class="item-grid" id="avatar-held-row"></div>
+
         <h3>Aura</h3>
         <div class="item-grid" id="avatar-aura-row"></div>
+
+        <h3>Companion Pet</h3>
+        <div class="avatar-preview-wrap">
+          <div id="pet-preview" class="pet-preview"></div>
+        </div>
+        <div class="item-grid" id="pet-species-row"></div>
+        <h3>Pet Color</h3>
+        <div class="swatch-row" id="pet-color-row"></div>
       </section>
 
       <section class="tab-panel" id="panel-shop">
@@ -144,6 +189,23 @@
       </section>
 
       <section class="tab-panel" id="panel-progress">
+        <h3>Focus Timer</h3>
+        <div class="chip-row" id="focus-duration-row">
+          <button class="chip active-off" data-focusmin="15">15m</button>
+          <button class="chip active" data-focusmin="25">25m</button>
+          <button class="chip active-off" data-focusmin="45">45m</button>
+          <button class="chip active-off" data-focusmin="60">60m</button>
+        </div>
+        <div class="focus-display">
+          <span id="focus-time">25:00</span>
+          <span class="focus-mode" id="focus-mode-label">Focus</span>
+        </div>
+        <div class="panel-actions">
+          <button id="focus-start-btn" class="btn">Start</button>
+          <button id="focus-pause-btn" class="btn btn-ghost hidden">Pause</button>
+          <button id="focus-reset-btn" class="btn btn-ghost">Reset</button>
+        </div>
+
         <div class="progress-stats">
           <div class="stat-card"><span class="stat-value" id="stat-level">1</span><span class="stat-label">Level</span></div>
           <div class="stat-card"><span class="stat-value" id="stat-coins">0</span><span class="stat-label">Vibe Coins</span></div>
@@ -154,6 +216,17 @@
           <div class="xp-bar"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
           <span class="xp-bar-label" id="xp-bar-label">0 / 100 XP</span>
         </div>
+
+        <button id="export-vibe-card-btn" class="btn btn-ghost" style="width:100%; margin-bottom:14px;">📤 Export Vibe Card</button>
+
+        <h3>Last 7 Days</h3>
+        <div class="history-chart" id="history-chart"></div>
+
+        <h3>Daily Quests</h3>
+        <ul id="daily-quest-list" class="quest-list"></ul>
+        <h3>Weekly Quests</h3>
+        <ul id="weekly-quest-list" class="quest-list"></ul>
+
         <h3>Achievements</h3>
         <ul id="achievement-list" class="achievement-list"></ul>
       </section>
@@ -296,6 +369,12 @@
 
       <div id="avatar-widget" class="avatar-widget">
         <div id="avatar-widget-canvas" class="avatar-widget-canvas"></div>
+        <div id="pet-widget-canvas" class="pet-widget-canvas"></div>
+      </div>
+
+      <div id="focus-widget" class="focus-widget hidden">
+        <span id="focus-widget-time">25:00</span>
+        <span class="focus-widget-mode" id="focus-widget-mode">Focus</span>
       </div>
 
       <div id="now-playing" class="now-playing hidden">

@@ -66,7 +66,7 @@ async function testStructureAndControls(browser) {
     clockFontChips: document.querySelectorAll('#clock-font-row .chip').length
   }));
 
-  assert.equal(counts.presets, 16, 'theme preset grid should render 16 cards');
+  assert.equal(counts.presets, 21, 'theme preset grid should render 21 cards');
   assert.equal(counts.swatches, 16, 'accent swatch row should render 16 swatches');
   assert.equal(counts.vizChips, 7, 'visualizer style row should render 7 chips');
   assert.equal(counts.patternChips, 4, 'background pattern row should render 4 chips');
@@ -151,18 +151,28 @@ async function testGamificationFlow(browser) {
     hairCards: document.getElementById('avatar-hair-row').children.length,
     outfitCards: document.getElementById('avatar-outfit-row').children.length,
     accessoryCards: document.getElementById('avatar-accessory-row').children.length,
+    hatCards: document.getElementById('avatar-hat-row').children.length,
+    heldCards: document.getElementById('avatar-held-row').children.length,
     auraCards: document.getElementById('avatar-aura-row').children.length,
     hairColors: document.getElementById('avatar-haircolor-row').children.length,
-    outfitColors: document.getElementById('avatar-outfitcolor-row').children.length
+    outfitColors: document.getElementById('avatar-outfitcolor-row').children.length,
+    hatColors: document.getElementById('avatar-hatcolor-row').children.length,
+    petCards: document.getElementById('pet-species-row').children.length,
+    petColors: document.getElementById('pet-color-row').children.length
   }));
   assert.equal(counts.bodyChips, 3, 'avatar body-type row should render 3 chips');
   assert.equal(counts.skinSwatches, 6, 'avatar skin-tone row should render 6 swatches');
   assert.equal(counts.hairCards, 7, 'avatar hair row should render 7 style cards');
   assert.equal(counts.outfitCards, 7, 'avatar outfit row should render 7 style cards');
   assert.equal(counts.accessoryCards, 6, 'avatar accessory row should render 6 style cards');
+  assert.equal(counts.hatCards, 6, 'avatar hat row should render 6 style cards');
+  assert.equal(counts.heldCards, 6, 'avatar held-item row should render 6 style cards');
   assert.equal(counts.auraCards, 5, 'avatar aura row should render 5 style cards');
   assert.equal(counts.hairColors, 8, 'avatar hair color row should render 8 swatches');
   assert.equal(counts.outfitColors, 12, 'avatar outfit color row should render 12 swatches');
+  assert.equal(counts.hatColors, 12, 'avatar hat color row should render 12 swatches');
+  assert.equal(counts.petCards, 6, 'pet species row should render 6 cards');
+  assert.equal(counts.petColors, 12, 'pet color row should render 12 swatches');
 
   // Exercise every always-free customization control once.
   await page.click('#avatar-body-row button:nth-child(2)');
@@ -208,22 +218,64 @@ async function testGamificationFlow(browser) {
   await page.click('.tab-btn[data-tab="shop"]');
   await page.waitForTimeout(150);
   const shopCardCount = await page.evaluate(() => document.querySelectorAll('#shop-sections .item-card').length);
-  assert.equal(shopCardCount, 26, 'shop should list all 26 purchasable items across every category');
+  assert.equal(shopCardCount, 41, 'shop should list all 41 purchasable items across every category');
+
+  // Pet: buy + equip a non-default species and recolor it.
+  await page.evaluate(() => { CVGame.state.coins = 1000; CVGame.save(); });
+  await page.click('.tab-btn[data-tab="avatar"]');
+  await clickCard('pet-species-row', 'Dragon');
+  await page.click('#pet-color-row .swatch:nth-child(3)');
+  const petState = await page.evaluate(() => ({ ...CVGame.state.pet }));
+  assert.equal(petState.species, 'dragon', 'buying a pet species should equip it');
+  const petSvgLength = await page.evaluate(() => document.getElementById('pet-preview').innerHTML.length);
+  assert.ok(petSvgLength > 50, 'pet preview should render a non-trivial SVG');
+
+  // Focus timer — start/pause/reset should not crash, and completing a
+  // session (via the same API the real countdown calls) should award coins
+  // and progress the daily/weekly focus quests.
+  await page.click('.tab-btn[data-tab="progress"]');
+  await page.waitForTimeout(100);
+  await page.click('#focus-start-btn');
+  await page.waitForTimeout(50);
+  await page.click('#focus-pause-btn');
+  await page.click('#focus-reset-btn');
+  const coinsBeforeFocus = await page.evaluate(() => CVGame.state.coins);
+  await page.evaluate(() => CVGame.completeFocusSession());
+  const coinsAfterFocus = await page.evaluate(() => CVGame.state.coins);
+  assert.ok(coinsAfterFocus > coinsBeforeFocus, 'completing a focus session should award coins');
 
   // Progress tab — simulate an hour of listening directly through the public
   // gamification API (the same one app.js's playback tracker calls).
   await page.evaluate(() => { for (let i = 0; i < 60; i++) CVGame.addVibeSeconds(60); });
-  await page.click('.tab-btn[data-tab="progress"]');
   await page.waitForTimeout(150);
   const progress = await page.evaluate(() => ({
     coinsText: document.getElementById('stat-coins').textContent,
     timeText: document.getElementById('stat-time').textContent,
     achievementCount: document.querySelectorAll('#achievement-list .achievement-item').length,
-    unlockedCount: document.querySelectorAll('#achievement-list .achievement-item.unlocked').length
+    unlockedCount: document.querySelectorAll('#achievement-list .achievement-item.unlocked').length,
+    dailyQuestCount: document.querySelectorAll('#daily-quest-list .achievement-item').length,
+    weeklyQuestCount: document.querySelectorAll('#weekly-quest-list .achievement-item').length,
+    historyBarCount: document.querySelectorAll('#history-chart .history-bar').length
   }));
   assert.equal(progress.timeText, '1h 0m', 'progress tab should reflect 60 minutes of tracked vibe time');
-  assert.equal(progress.achievementCount, 20, 'progress tab should list all 20 achievements');
+  assert.equal(progress.achievementCount, 24, 'progress tab should list all 24 achievements');
   assert.ok(progress.unlockedCount >= 2, 'at least the time-based achievements should have unlocked by now');
+  assert.equal(progress.dailyQuestCount, 3, 'progress tab should list 3 daily quests');
+  assert.equal(progress.weeklyQuestCount, 3, 'progress tab should list 3 weekly quests');
+  assert.equal(progress.historyBarCount, 7, 'progress tab should render a 7-day history chart');
+
+  // Vibe Card export — should produce a real PNG data URL without crashing
+  // (a canvas tainted by the SVG-drawImage step would throw here instead).
+  const cardDataUrl = await page.evaluate(async () => {
+    const originalClick = HTMLAnchorElement.prototype.click;
+    let captured = null;
+    HTMLAnchorElement.prototype.click = function () { captured = this.href; };
+    document.getElementById('export-vibe-card-btn').click();
+    await new Promise((r) => setTimeout(r, 300));
+    HTMLAnchorElement.prototype.click = originalClick;
+    return captured;
+  });
+  assert.ok(cardDataUrl && cardDataUrl.startsWith('data:image/png'), 'exporting a Vibe Card should produce a PNG data URL');
 
   // Scene backgrounds
   await page.click('.tab-btn[data-tab="theme"]');
@@ -231,12 +283,35 @@ async function testGamificationFlow(browser) {
   await page.waitForTimeout(150);
   const sceneCardCount = await page.evaluate(() => document.querySelectorAll('#scene-row .item-card').length);
   assert.equal(sceneCardCount, 6, 'scene picker should render all 6 scenes');
-  await page.evaluate(() => { CVGame.state.coins = 1000; CVGame.save(); });
   await clickCard('scene-row', 'Cyberpunk Skyline');
   await page.waitForTimeout(150);
   const sceneClass = await page.evaluate(() => document.getElementById('scene-bg').className);
   assert.ok(sceneClass.includes('scene-cyberpunk_skyline'), 'equipping a scene should apply its background class');
   await page.click('#bg-mode-row .chip[data-bgmode="dynamic"]');
+
+  // Playlists: save the current (empty) queue is a no-op, so seed one directly
+  // and confirm loading it replaces the track list.
+  await page.click('.tab-btn[data-tab="library"]');
+  await page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem('codevibe.settings.v1'));
+    raw.playlists = [{ id: 'p1', name: 'Test Mix', tracks: [{ path: '/tmp/a.mp3', name: 'a.mp3' }] }];
+    localStorage.setItem('codevibe.settings.v1', JSON.stringify(raw));
+  });
+  await page.reload();
+  await page.waitForTimeout(300);
+  await page.click('#playlist-list .track-item');
+  await page.waitForTimeout(100);
+  const loadedTrackCount = await page.evaluate(() => document.querySelectorAll('#track-list .track-item').length);
+  assert.equal(loadedTrackCount, 1, 'loading a saved playlist should populate the track list');
+
+  // Sleep timer and gaming-lofi search chips — just confirm they wire up
+  // without crashing (openExternal is mocked to a no-op).
+  await page.click('.tab-btn[data-tab="library"]');
+  await page.click('#sleep-timer-row .chip[data-sleepmin="15"]');
+  await page.waitForTimeout(50);
+  await page.click('#sleep-timer-row .chip[data-sleepmin="0"]');
+  await page.click('.tab-btn[data-tab="stream"]');
+  await page.click('#gaming-lofi-row .chip[data-lofi-query="Skyrim"]');
 
   await context.close();
   assert.deepEqual(errors, [], 'expected zero console errors during the avatar/shop/progress/scene flow');

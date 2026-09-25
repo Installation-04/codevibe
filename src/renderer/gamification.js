@@ -22,20 +22,23 @@
   const OUTFIT_COST = { cyberjacket: 180, streetwear: 120, sundress: 120, robe: 130, armor: 200, kimono: 150 };
   const ACCESSORY_COST = { glasses: 70, headphones: 60, visor: 170, flowercrown: 90, catears: 150 };
   const AURA_COST = { neonglow: 110, sparkle: 130, petals: 140, matrixcode: 260 };
+  const HAT_COST = { beanie: 70, crown: 220, headband: 60, cap: 80, wizardhat: 160 };
+  const HELD_COST = { coffee: 50, keyboard: 90, controller: 120, sword: 180, book: 140 };
+  const PET_COST = { dragon: 220, robot: 180, slime: 90, owl: 130, fox: 150 };
   const SCENE_COST = Object.fromEntries(Object.entries(SCENES).filter(([, s]) => !s.free).map(([k, s]) => [k, s.cost]));
 
-  const CATALOG = { hair: HAIR_COST, outfit: OUTFIT_COST, accessory: ACCESSORY_COST, aura: AURA_COST, scene: SCENE_COST };
-  const CATEGORIES = ['hair', 'outfit', 'accessory', 'aura', 'scene'];
+  const CATALOG = { hair: HAIR_COST, outfit: OUTFIT_COST, accessory: ACCESSORY_COST, aura: AURA_COST, hat: HAT_COST, held: HELD_COST, pet: PET_COST, scene: SCENE_COST };
+  const CATEGORIES = ['hair', 'outfit', 'accessory', 'aura', 'hat', 'held', 'pet', 'scene'];
+  const AVATAR_CATALOGS = { hair: CVAvatar.HAIR_STYLES, outfit: CVAvatar.OUTFIT_STYLES, accessory: CVAvatar.ACCESSORY_STYLES, aura: CVAvatar.AURA_STYLES, hat: CVAvatar.HAT_STYLES, held: CVAvatar.HELD_ITEM_STYLES, pet: CVAvatar.PET_STYLES };
 
   function itemId(category, key) { return `${category}:${key}`; }
 
   function buildShopItems() {
     const items = [];
-    const avatarCatalogs = { hair: CVAvatar.HAIR_STYLES, outfit: CVAvatar.OUTFIT_STYLES, accessory: CVAvatar.ACCESSORY_STYLES, aura: CVAvatar.AURA_STYLES };
     CATEGORIES.forEach((category) => {
       const costs = CATALOG[category];
       Object.entries(costs).forEach(([key, cost]) => {
-        const label = category === 'scene' ? SCENES[key].label : (avatarCatalogs[category][key] || {}).label || key;
+        const label = category === 'scene' ? SCENES[key].label : (AVATAR_CATALOGS[category][key] || {}).label || key;
         items.push({ id: itemId(category, key), category, key, label, cost });
       });
     });
@@ -55,16 +58,32 @@
     shuffleUses: 0,
     avatarChangeCount: 0,
     itemsBoughtCount: 0,
+    focusSessionsCompleted: 0,
+    focusDurationMin: 25,
     themesTried: [],
     vizStylesTried: [],
     nightOwlHit: false,
     earlyBirdHit: false,
     achievementsUnlocked: [],
     ownedItems: [],
-    avatar: { bodyType: 'slim', skinTone: CVAvatar.SKIN_TONES[0], hair: 'short', hairColor: CVAvatar.HAIR_COLORS[0], outfit: 'hoodie', outfitColor: CVAvatar.OUTFIT_COLORS[0], accessory: 'none', aura: 'none' },
+    avatar: {
+      bodyType: 'slim', skinTone: CVAvatar.SKIN_TONES[0],
+      hair: 'short', hairColor: CVAvatar.HAIR_COLORS[0],
+      outfit: 'hoodie', outfitColor: CVAvatar.OUTFIT_COLORS[0],
+      accessory: 'none', aura: 'none',
+      hat: 'none', hatColor: CVAvatar.OUTFIT_COLORS[7], held: 'none'
+    },
+    pet: { species: 'cat', color: '#ffa94d' },
     scene: 'cozy_study',
     avatarWidgetVisible: true,
-    avatarPos: null
+    avatarPos: null,
+    dailyMinutes: {},
+    dailyQuestDate: null,
+    dailyProgress: {},
+    dailyQuestsClaimed: [],
+    weeklyQuestWeek: null,
+    weeklyProgress: {},
+    weeklyQuestsClaimed: []
   };
 
   let state = load();
@@ -92,6 +111,33 @@
 
   function todayStr(d = new Date()) { return d.toISOString().slice(0, 10); }
   function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return todayStr(d); }
+
+  function isoWeekStr(d = new Date()) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+    return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+  }
+
+  // Resets daily/weekly quest progress the first time either period rolls
+  // over. Called defensively at the top of anything that touches quest
+  // progress, so it self-heals regardless of when the app was last open.
+  function ensureQuestPeriods() {
+    const today = todayStr();
+    if (state.dailyQuestDate !== today) {
+      state.dailyQuestDate = today;
+      state.dailyProgress = {};
+      state.dailyQuestsClaimed = [];
+    }
+    const week = isoWeekStr();
+    if (state.weeklyQuestWeek !== week) {
+      state.weeklyQuestWeek = week;
+      state.weeklyProgress = {};
+      state.weeklyQuestsClaimed = [];
+    }
+  }
 
   // ---------- Toasts ----------
   function ensureToastContainer() {
@@ -135,6 +181,8 @@
       level: state.level,
       nightOwlHit: state.nightOwlHit,
       earlyBirdHit: state.earlyBirdHit,
+      focusSessions: state.focusSessionsCompleted,
+      petsOwnedCount: 1 + state.ownedItems.filter((id) => id.startsWith('pet:')).length,
       allCategoriesOwned: CATEGORIES.every((c) => categoriesOwned.has(c))
     };
   }
@@ -159,7 +207,11 @@
     { id: 'big_spender', icon: '💰', name: 'Big Spender', desc: 'Buy 5 shop items.', reward: 40, check: (s) => s.itemsBoughtCount >= 5 },
     { id: 'trendsetter', icon: '✨', name: 'Trendsetter', desc: 'Own an item from every shop category.', reward: 100, check: (s) => s.allCategoriesOwned },
     { id: 'leveled_5', icon: '⭐', name: 'Rising Star', desc: 'Reach level 5.', reward: 20, check: (s) => s.level >= 5 },
-    { id: 'leveled_10', icon: '🌟', name: 'Vibe Master', desc: 'Reach level 10.', reward: 50, check: (s) => s.level >= 10 }
+    { id: 'leveled_10', icon: '🌟', name: 'Vibe Master', desc: 'Reach level 10.', reward: 50, check: (s) => s.level >= 10 },
+    { id: 'focused_1', icon: '🎯', name: 'Focused', desc: 'Complete 1 focus session.', reward: 20, check: (s) => s.focusSessions >= 1 },
+    { id: 'focused_20', icon: '🧠', name: 'Deep Work', desc: 'Complete 20 focus sessions.', reward: 80, check: (s) => s.focusSessions >= 20 },
+    { id: 'focused_100', icon: '🏆', name: 'Pomodoro Pro', desc: 'Complete 100 focus sessions.', reward: 250, check: (s) => s.focusSessions >= 100 },
+    { id: 'menagerie', icon: '🐾', name: 'Menagerie', desc: 'Unlock every pet.', reward: 100, check: (s) => s.petsOwnedCount >= 6 }
   ];
 
   function checkAchievements() {
@@ -177,27 +229,81 @@
     if (changed) { save(); notify(); }
   }
 
+  // ---------- Daily / weekly quests ----------
+  const DAILY_QUESTS = [
+    { id: 'd_warmup', icon: '🎧', name: 'Warm Up', desc: 'Vibe for 15 minutes today.', reward: 15, target: 15, progress: (p) => p.vibeMinutes || 0 },
+    { id: 'd_focus', icon: '🎯', name: 'Session Complete', desc: 'Finish 1 focus session today.', reward: 25, target: 1, progress: (p) => p.focusSessions || 0 },
+    { id: 'd_shuffle', icon: '🔀', name: 'Mix It Up', desc: 'Use shuffle at least once today.', reward: 10, target: 1, progress: (p) => p.shuffleUsed || 0 }
+  ];
+  const WEEKLY_QUESTS = [
+    { id: 'w_marathon', icon: '⏳', name: 'Marathon Week', desc: 'Vibe for 3 hours this week.', reward: 80, target: 180, progress: (p) => p.vibeMinutes || 0 },
+    { id: 'w_focus', icon: '🎯', name: 'Focused Week', desc: 'Complete 5 focus sessions this week.', reward: 100, target: 5, progress: (p) => p.focusSessions || 0 },
+    { id: 'w_style', icon: '💅', name: 'Style Refresh', desc: 'Change your avatar 3 times this week.', reward: 40, target: 3, progress: (p) => p.avatarChanges || 0 }
+  ];
+
+  function checkQuests() {
+    ensureQuestPeriods();
+    let changed = false;
+    DAILY_QUESTS.forEach((q) => {
+      if (state.dailyQuestsClaimed.includes(q.id)) return;
+      if (q.progress(state.dailyProgress) >= q.target) {
+        state.dailyQuestsClaimed.push(q.id);
+        state.coins += q.reward;
+        changed = true;
+        showToast({ icon: q.icon, title: 'Daily Quest Complete!', subtitle: `${q.name} (+${q.reward} coins)` });
+      }
+    });
+    WEEKLY_QUESTS.forEach((q) => {
+      if (state.weeklyQuestsClaimed.includes(q.id)) return;
+      if (q.progress(state.weeklyProgress) >= q.target) {
+        state.weeklyQuestsClaimed.push(q.id);
+        state.coins += q.reward;
+        changed = true;
+        showToast({ icon: q.icon, title: 'Weekly Quest Complete!', subtitle: `${q.name} (+${q.reward} coins)` });
+      }
+    });
+    if (changed) save();
+  }
+
+  function bumpAvatarChangeQuest() {
+    ensureQuestPeriods();
+    state.weeklyProgress.avatarChanges = (state.weeklyProgress.avatarChanges || 0) + 1;
+  }
+
   // ---------- XP / leveling / time tracking ----------
-  function awardMinute() {
-    state.totalMinutesListened += 1;
-    state.coins += COINS_PER_MINUTE;
-    state.xp += XP_PER_MINUTE;
-    let leveled = false;
+  function grantRewards(coins, xp) {
+    state.coins += coins;
+    state.xp += xp;
     while (state.xp >= xpForLevel(state.level)) {
       state.xp -= xpForLevel(state.level);
       state.level += 1;
       const bonus = 25 + state.level * 5;
       state.coins += bonus;
-      leveled = true;
       showToast({ icon: '⭐', title: `Level Up! Level ${state.level}`, subtitle: `+${bonus} bonus Vibe Coins` });
     }
+  }
+
+  function pruneDailyMinutes() {
+    const keys = Object.keys(state.dailyMinutes).sort();
+    while (keys.length > 60) delete state.dailyMinutes[keys.shift()];
+  }
+
+  function awardMinute() {
+    state.totalMinutesListened += 1;
+    grantRewards(COINS_PER_MINUTE, XP_PER_MINUTE);
+    ensureQuestPeriods();
+    state.dailyProgress.vibeMinutes = (state.dailyProgress.vibeMinutes || 0) + 1;
+    state.weeklyProgress.vibeMinutes = (state.weeklyProgress.vibeMinutes || 0) + 1;
+    const today = todayStr();
+    state.dailyMinutes[today] = (state.dailyMinutes[today] || 0) + 1;
+    pruneDailyMinutes();
     const hour = new Date().getHours();
     if (hour >= 0 && hour < 4) state.nightOwlHit = true;
     if (hour >= 5 && hour < 7) state.earlyBirdHit = true;
     save();
     checkAchievements();
+    checkQuests();
     notify();
-    return leveled;
   }
 
   function addVibeSeconds(seconds) {
@@ -212,6 +318,26 @@
     if (awarded) save(); else { /* accumulator-only change; persist lazily on next full minute */ }
   }
 
+  // ---------- Focus timer ----------
+  function completeFocusSession() {
+    state.focusSessionsCompleted += 1;
+    grantRewards(50, 30);
+    ensureQuestPeriods();
+    state.dailyProgress.focusSessions = (state.dailyProgress.focusSessions || 0) + 1;
+    state.weeklyProgress.focusSessions = (state.weeklyProgress.focusSessions || 0) + 1;
+    showToast({ icon: '🎯', title: 'Focus Session Complete!', subtitle: '+50 Vibe Coins' });
+    save();
+    checkAchievements();
+    checkQuests();
+    notify();
+  }
+
+  function setFocusDuration(minutes) {
+    state.focusDurationMin = minutes;
+    save();
+    notify();
+  }
+
   function updateStreak() {
     const today = todayStr();
     if (state.lastActiveDate === today) return;
@@ -224,14 +350,19 @@
 
   // ---------- Events from app.js ----------
   function recordEvent(name) {
+    ensureQuestPeriods();
     switch (name) {
       case 'trackAdded': state.tracksAddedCount += 1; break;
       case 'streamLoaded': state.streamsLoadedCount += 1; break;
-      case 'shuffleUsed': state.shuffleUses += 1; break;
+      case 'shuffleUsed':
+        state.shuffleUses += 1;
+        state.dailyProgress.shuffleUsed = (state.dailyProgress.shuffleUsed || 0) + 1;
+        break;
       default: return;
     }
     save();
     checkAchievements();
+    checkQuests();
     notify();
   }
 
@@ -253,9 +384,8 @@
 
   // ---------- Shop ----------
   function isOwned(category, key) {
-    const avatarCatalogs = { hair: CVAvatar.HAIR_STYLES, outfit: CVAvatar.OUTFIT_STYLES, accessory: CVAvatar.ACCESSORY_STYLES, aura: CVAvatar.AURA_STYLES };
     if (category === 'scene') { if (SCENES[key] && SCENES[key].free) return true; }
-    else if (avatarCatalogs[category] && avatarCatalogs[category][key] && avatarCatalogs[category][key].free) return true;
+    else if (AVATAR_CATALOGS[category] && AVATAR_CATALOGS[category][key] && AVATAR_CATALOGS[category][key].free) return true;
     return state.ownedItems.includes(itemId(category, key));
   }
 
@@ -278,34 +408,55 @@
   function equip(category, key) {
     if (!isOwned(category, key)) return false;
     if (category === 'scene') state.scene = key;
-    else {
+    else if (category === 'pet') {
+      state.pet.species = key;
+      state.avatarChangeCount += 1;
+      bumpAvatarChangeQuest();
+    } else {
       state.avatar[category] = key;
       state.avatarChangeCount += 1;
+      bumpAvatarChangeQuest();
     }
     save();
     checkAchievements();
+    checkQuests();
     notify();
     return true;
   }
 
-  // For avatar fields that are always free (body type, skin tone, hair/outfit
-  // color) — no ownership check, just set directly and still count as styling.
+  // For avatar/pet fields that are always free (body type, skin tone,
+  // hair/outfit/hat color, pet color) — no ownership check, just set directly
+  // and still count as styling.
   function setAvatarField(field, value) {
     state.avatar[field] = value;
     state.avatarChangeCount += 1;
+    bumpAvatarChangeQuest();
     save();
     checkAchievements();
+    checkQuests();
+    notify();
+  }
+
+  function setPetField(field, value) {
+    state.pet[field] = value;
+    state.avatarChangeCount += 1;
+    bumpAvatarChangeQuest();
+    save();
+    checkAchievements();
+    checkQuests();
     notify();
   }
 
   function init() {
     updateStreak();
+    ensureQuestPeriods();
     checkAchievements();
+    checkQuests();
   }
 
   window.CVGame = {
     get state() { return state; },
-    SCENES, SHOP_ITEMS, ACHIEVEMENTS, CATEGORIES,
+    SCENES, SHOP_ITEMS, ACHIEVEMENTS, CATEGORIES, DAILY_QUESTS, WEEKLY_QUESTS,
     xpForLevel,
     init,
     addVibeSeconds,
@@ -316,6 +467,9 @@
     buyItem,
     equip,
     setAvatarField,
+    setPetField,
+    completeFocusSession,
+    setFocusDuration,
     save,
     onChange: (fn) => listeners.push(fn),
     showToast

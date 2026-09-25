@@ -789,3 +789,98 @@ input[type="range"] {
 .toast-text { display: flex; flex-direction: column; }
 .toast-title { font-size: 13px; font-weight: 700; color: var(--text); }
 .toast-sub { font-size: 11.5px; color: var(--text-dim); }
+
+/* ---------- Companion pet ---------- */
+.pet-preview {
+  width: 70px;
+  height: 70px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 6px;
+}
+.pet-preview svg { width: 100%; height: 100%; display: block; }
+.pet-widget-canvas {
+  position: absolute;
+  right: -22px;
+  bottom: -6px;
+  width: 34px;
+  height: 34px;
+  animation: pet-bob 3.2s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+.pet-widget-canvas svg { width: 100%; height: 100%; display: block; }
+@keyframes pet-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* ---------- Focus timer ---------- */
+.focus-display {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+#focus-time { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.focus-mode {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.focus-widget {
+  position: absolute;
+  top: 36px;
+  left: 48px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--accent);
+  text-align: center;
+}
+#focus-widget-time { display: block; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.focus-widget-mode { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+
+/* ---------- History chart ---------- */
+.history-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 80px;
+  margin-bottom: 14px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+.history-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+.history-bar-fill {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--accent), var(--accent-soft));
+}
+.history-bar-label { font-size: 9.5px; color: var(--text-dim); }
+
+/* ---------- Quests ---------- */
+/* Unlike .achievement-list (flex:1 + its own scroll, for a long list), quest
+   lists are always exactly 3 items — natural height, no flex competition. */
+.quest-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.quest-list .achievement-item { opacity: 0.6; }
+.quest-list .achievement-item.unlocked { opacity: 1; }
+
+/* ---------- Playlists ---------- */
+.playlist-list .track-item.active { background: var(--accent-soft); color: var(--text); }
+
+/* Drag-to-reorder track list */
+.track-item[draggable="true"] { cursor: grab; }
+.track-item.drag-over { border-top: 2px solid var(--accent); }

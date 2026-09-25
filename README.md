@@ -1,6 +1,6 @@
 # CodeVibe
 
-A desktop music vibe visualizer for coding, lofi, and ambiance sessions — local files or streaming links, an audio-reactive visualizer, a clock overlay, sixteen themes, and a customizable companion avatar that levels up the more you vibe. Built with Electron; runs on Windows, macOS, and Linux.
+A desktop music vibe visualizer for coding, lofi, and ambiance sessions — local files or streaming links, an audio-reactive visualizer, a clock overlay, twenty-one themes, and a customizable companion avatar (with a pet!) that levels up the more you vibe, complete with a focus timer, quests, and a coin marketplace. Built with Electron; runs on Windows, macOS, and Linux.
 
 [![Release](https://github.com/Installation-04/codevibe/actions/workflows/release.yml/badge.svg)](https://github.com/Installation-04/codevibe/actions/workflows/release.yml)
 
@@ -41,27 +41,32 @@ xattr -cr /Applications/CodeVibe.app
 
 ## Features
 
-- **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus), or just drag and drop files onto the window, and play them with a real audio-reactive visualizer, driven by the Web Audio API.
+- **Local music playback** — add individual files or a whole folder (mp3, wav, flac, ogg, m4a, aac, opus), or just drag and drop files onto the window, and play them with a real audio-reactive visualizer, driven by the Web Audio API. Drag tracks in the list to reorder them, and save the current queue as a named playlist to reload later.
 - **Shuffle, repeat, and mute** — shuffle the queue, repeat all or a single track, and a one-click mute that remembers your volume. Keyboard shortcuts: Space (play/pause), M (mute), N (next), P (previous).
+- **Sleep timer** — auto-stop playback after 15/30/45/60 minutes, with a live countdown.
 - **7 visualizer styles** — Bars, Wave, Particles, Matrix Rain, Radial Bars, Kaleidoscope, and Orbit Rings.
-- **Streaming links** — paste a YouTube (including YouTube Music and timestamped links), Spotify, or SoundCloud link and it plays in an embedded browser view alongside an ambient visualizer, with a one-click "Open in Browser Instead" fallback if a link can't be embedded (e.g. embedding disabled by the uploader).
+- **Streaming links** — paste a YouTube (including YouTube Music and timestamped links), Spotify, or SoundCloud link and it plays in an embedded browser view alongside an ambient visualizer, with a one-click "Open in Browser Instead" fallback if a link can't be embedded (e.g. embedding disabled by the uploader). A **Gaming Lofi** shortcut row opens a YouTube search (in your default browser) for popular game-inspired lofi remixes — Skyrim, Halo, Zelda, Final Fantasy, Fallout, Elden Ring, Minecraft, Witcher — so you can find and paste in a link; nothing is bundled or embedded in-app.
 - **Jellyfin and Plex** — connect to your own media server (Jellyfin: server address + username/password; Plex: sign in through plex.tv, then point it at your server) and browse and play your library directly. Server addresses are validated as http(s) URLs before use.
 - **Clock overlay** — draggable, with 12h/24h format, optional seconds, 5 styles (Digital, Minimal, Boxed, Neon, Analog), 5 font families, and an adjustable size.
-- **16 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker, Solarized Dusk, Pastel Dreams — plus a 16-color quick-pick accent palette and full custom accent/background color pickers.
-- **Background modes** — **Dynamic Theme** (animated gradient/visualizer, with Gradient/Grid/Vignette/Noise background patterns) or **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top).
+- **21 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker, Solarized Dusk, Pastel Dreams, Frost Throne, Void Marine, Emerald Kingdom, Wasteland Radio, Pixel Quest (the last five are original game-genre-inspired looks — Nordic fantasy, sci-fi military, retro RPG, and so on) — plus a 16-color quick-pick accent palette and full custom accent/background color pickers.
+- **Background modes** — **Dynamic Theme** (animated gradient/visualizer, with Gradient/Grid/Vignette/Noise background patterns), **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top), or **Scene** (six illustrated backdrops — see below).
 - **Panel appearance** — adjustable blur and opacity for the glass-style sidebar and transport bar.
 - **Versioning & auto-update** — the current version is shown in the sidebar, with a refresh button to check for updates on demand at any time; packaged builds also check GitHub Releases automatically on startup via `electron-updater`, and either way show an in-app banner to download and restart when a newer release is found.
-- The app remembers which sidebar tab you were on, along with every other setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlist, shuffle/repeat/mute, streaming history), between launches.
+- The app remembers which sidebar tab you were on, along with every other setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlists, shuffle/repeat/mute, streaming history), between launches.
 
-## Your Vibe Companion — avatar, progress, and a marketplace
+## Your Vibe Companion — avatar, pet, focus timer, quests, and a marketplace
 
-CodeVibe has a small, entirely local, entirely cosmetic game layer built around actually using the app:
+CodeVibe has a small, entirely local, entirely cosmetic game layer built around actually using the app — no real money involved anywhere, everything is earned by listening:
 
-- **A customizable avatar** — body type, skin tone, hair style/color, outfit style/color, an accessory, and an aura, all mixed and matched independently rather than locked to a gender. Want a full cyberpunk look (mohawk, neon visor, piped jacket, neon glow)? Go for it. Prefer twintails, a sundress, a flower crown, and drifting petals? Just as available — pick anything, in any combination. The avatar shows up both in the Avatar tab and as a small draggable widget on the stage, with a gentle idle animation.
-- **Vibe Coins & levels** — listening to music (local, streaming, Jellyfin, or Plex) earns Vibe Coins and XP in real time; leveling up pays out a coin bonus. There's no real money involved anywhere — everything is earned by using the app.
-- **A marketplace** — the Shop tab lists every unlockable hair style, outfit, accessory, aura, and background **Scene**, grouped by category, each with its Vibe Coin price and owned/equipped state. The same items can also be bought straight from the Avatar tab (and Scenes from the Theme tab) — buying and equipping are one click.
+- **A customizable avatar** — body type, skin tone, hair style/color, outfit style/color, an accessory, a hat + hat color, and a held item, plus an aura effect, all mixed and matched independently rather than locked to a gender. Want a full cyberpunk look (mohawk, neon visor, piped jacket, neon glow)? Go for it. Prefer twintails, a sundress, a flower crown, and drifting petals? Just as available — pick anything, in any combination. The avatar shows up in the Avatar tab and as a small draggable widget on the stage, with an idle bob animation that also pulses gently in time with the music.
+- **A companion pet** — a small creature (cat, dragon, robot, slime, owl, or fox) that rides along next to your avatar on the stage, recolorable independently.
+- **Vibe Coins & levels** — listening to music (local, streaming, Jellyfin, or Plex) earns Vibe Coins and XP in real time; leveling up pays out a coin bonus.
+- **A focus timer** — a Pomodoro-style timer (15/25/45/60-minute sessions, with automatic short/long breaks) on the Progress tab and as an on-stage countdown widget; completing a focus session pays out a coin/XP bonus.
+- **Daily & weekly quests** — 3 daily quests (vibe for 15 minutes, finish a focus session, use shuffle) and 3 weekly quests (3 hours of vibing, 5 focus sessions, restyle your avatar 3 times), each resetting automatically and paying out coins on completion.
+- **A marketplace** — the Shop tab lists every unlockable hair style, outfit, accessory, hat, held item, aura, pet, and background **Scene**, grouped by category, each with its Vibe Coin price and owned/equipped state. The same items can also be bought straight from the Avatar tab (and Scenes from the Theme tab) — buying and equipping are one click.
 - **Scenes** — six illustrated background scenes (Cozy Study, Zen Garden, Beach Sunset, Enchanted Forest, Cyberpunk Skyline, Deep Space) selectable as a third background mode alongside Dynamic Theme and Wallpaper.
-- **Achievements & milestones** — 20 achievements covering listening milestones, streaks, night-owl/early-bird sessions, trying every theme/visualizer, shopping, and more, each paying out a coin reward the moment it's earned, with a toast notification and a running list (with progress) on the Progress tab alongside your level, coin balance, streak, and total vibe time.
+- **Achievements & milestones** — 24 achievements covering listening milestones, streaks, night-owl/early-bird sessions, trying every theme/visualizer, shopping, focus sessions, and pet collecting, each paying out a coin reward the moment it's earned, with a toast notification and a running list (with progress) on the Progress tab.
+- **A 7-day listening history chart** and a **shareable Vibe Card** — export your avatar, level, coins, streak, vibe time, and achievement count as a PNG to share.
 
 All of this lives in its own local save file (separate from your regular settings) and never touches the network.
 
@@ -87,7 +92,7 @@ npx playwright install chromium   # once, to download the test browser
 npm run test:smoke
 ```
 
-Runs a headless UI regression suite (`tests/smoke.js`) against the renderer: it checks that every theme/visualizer/clock control renders and wires up correctly, exercises the avatar/shop/progress/scene flow (customizing, buying, equipping, achievements, and the coin economy), and exercises the full Jellyfin and Plex connect → browse → play flows against mocked servers. This is the same check that runs in CI on every push and pull request.
+Runs a headless UI regression suite (`tests/smoke.js`) against the renderer: it checks that every theme/visualizer/clock control renders and wires up correctly, exercises the avatar/pet/shop/progress/scene/focus-timer/quest flow (customizing, buying, equipping, achievements, quests, the coin economy, and the Vibe Card export), and exercises the full Jellyfin and Plex connect → browse → play flows against mocked servers. This is the same check that runs in CI on every push and pull request.
 
 ## Building installers
 
