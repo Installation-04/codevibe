@@ -19,7 +19,12 @@
     vibecoding:{ label: 'VibeCoding',    bg1: '#1e1b4b', bg2: '#020617', accent: '#a78bfa' },
     hacker:    { label: 'Retro Hacker',  bg1: '#1a1400', bg2: '#000000', accent: '#ffb000', vizStyle: 'matrix' },
     solarized: { label: 'Solarized Dusk',bg1: '#0b3d3a', bg2: '#04211f', accent: '#e8a33d' },
-    pastel:    { label: 'Pastel Dreams', bg1: '#2d1b3d', bg2: '#150a20', accent: '#ffb3d9' }
+    pastel:    { label: 'Pastel Dreams', bg1: '#2d1b3d', bg2: '#150a20', accent: '#ffb3d9' },
+    frostthrone:    { label: 'Frost Throne',     bg1: '#1a2e3d', bg2: '#050d14', accent: '#8ec9e8' },
+    voidmarine:     { label: 'Void Marine',      bg1: '#1c2430', bg2: '#05070a', accent: '#ff8c3d' },
+    emeraldkingdom: { label: 'Emerald Kingdom',  bg1: '#1a3320', bg2: '#050f08', accent: '#e8c34d' },
+    wastelandradio: { label: 'Wasteland Radio',  bg1: '#3d2a12', bg2: '#140d04', accent: '#7fff6e' },
+    pixelquest:     { label: 'Pixel Quest',      bg1: '#241b4d', bg2: '#0a0618', accent: '#ff5fa8' }
   };
 
   const defaultState = {
@@ -59,7 +64,8 @@
     jellyfinUsername: null,
     plexClientId: null,
     plexToken: null,
-    plexServer: null
+    plexServer: null,
+    playlists: []
   };
 
   const ACCENT_SWATCHES = [
@@ -136,6 +142,7 @@
         state.customAccent = null;
         state.customBg1 = null;
         state.customBg2 = null;
+        if (window.CVGame) CVGame.recordThemeTried(key);
         if (t.vizStyle) {
           state.vizStyle = t.vizStyle;
           document.querySelectorAll('#viz-style-row .chip').forEach((c) => {
@@ -218,6 +225,7 @@
       document.querySelectorAll('#viz-style-row .chip').forEach((c) => c.classList.remove('active'));
       chip.classList.add('active');
       state.vizStyle = chip.dataset.style;
+      if (window.CVGame) CVGame.recordVizTried(chip.dataset.style);
       saveState();
     });
   });
@@ -409,13 +417,19 @@
   const wallpaperBg = document.getElementById('wallpaper-bg');
   const wallpaperOverlay = document.getElementById('wallpaper-overlay');
   const wallpaperControls = document.getElementById('wallpaper-controls');
+  const sceneBg = document.getElementById('scene-bg');
+  const sceneControls = document.getElementById('scene-controls');
   const visualizerCanvas = document.getElementById('visualizer');
+  const SCENE_IDS = ['cozy_study', 'zen_garden', 'beach_sunset', 'enchanted_forest', 'cyberpunk_skyline', 'deep_space'];
 
   function applyBackgroundMode() {
     const isWallpaper = state.bgMode === 'wallpaper';
+    const isScene = state.bgMode === 'scene';
     wallpaperControls.classList.toggle('hidden', !isWallpaper);
     wallpaperBg.classList.toggle('hidden', !isWallpaper || !state.wallpaperPath);
-    document.getElementById('bg-glow').classList.toggle('hidden', isWallpaper);
+    sceneControls.classList.toggle('hidden', !isScene);
+    sceneBg.classList.toggle('hidden', !isScene);
+    document.getElementById('bg-glow').classList.toggle('hidden', isWallpaper || isScene);
 
     if (isWallpaper && state.wallpaperPath) {
       const url = state.wallpaperUrl || fallbackFileUrl(state.wallpaperPath);
@@ -426,7 +440,12 @@
       wallpaperOverlay.style.opacity = state.wallpaperDim / 100;
     }
 
-    const hideViz = isWallpaper && !state.wallpaperShowViz;
+    if (isScene && window.CVGame) {
+      SCENE_IDS.forEach((id) => sceneBg.classList.remove('scene-' + id));
+      sceneBg.classList.add('scene-' + (CVGame.state.scene || 'cozy_study'));
+    }
+
+    const hideViz = (isWallpaper && !state.wallpaperShowViz) || isScene;
     visualizerCanvas.classList.toggle('viz-hidden', hideViz);
   }
 
@@ -551,10 +570,123 @@
       li.appendChild(name);
       li.appendChild(rm);
       li.addEventListener('click', () => playLocalTrack(i));
+
+      // Drag-to-reorder
+      li.draggable = true;
+      li.addEventListener('dragstart', (ev) => {
+        ev.dataTransfer.setData('text/plain', String(i));
+        ev.dataTransfer.effectAllowed = 'move';
+      });
+      li.addEventListener('dragover', (ev) => {
+        ev.preventDefault();
+        li.classList.add('drag-over');
+      });
+      li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
+      li.addEventListener('drop', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        li.classList.remove('drag-over');
+        const fromIndex = Number(ev.dataTransfer.getData('text/plain'));
+        if (Number.isNaN(fromIndex) || fromIndex === i) return;
+        const [moved] = state.tracks.splice(fromIndex, 1);
+        state.tracks.splice(i, 0, moved);
+        if (currentIndex === fromIndex) currentIndex = i;
+        else if (fromIndex < currentIndex && i >= currentIndex) currentIndex--;
+        else if (fromIndex > currentIndex && i <= currentIndex) currentIndex++;
+        saveState();
+        renderTrackList();
+      });
+
       trackListEl.appendChild(li);
     });
     document.getElementById('library-hint').classList.toggle('hidden', state.tracks.length > 0);
   }
+
+  // ---------- Playlists ----------
+  function renderPlaylistList() {
+    const list = document.getElementById('playlist-list');
+    list.innerHTML = '';
+    state.playlists.forEach((pl, i) => {
+      const li = document.createElement('li');
+      li.className = 'track-item';
+      const name = document.createElement('span');
+      name.textContent = `${pl.name} (${pl.tracks.length})`;
+      const rm = document.createElement('span');
+      rm.className = 'rm';
+      rm.textContent = '✕';
+      rm.title = 'Delete playlist';
+      rm.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        state.playlists.splice(i, 1);
+        saveState();
+        renderPlaylistList();
+      });
+      li.appendChild(name);
+      li.appendChild(rm);
+      li.addEventListener('click', () => {
+        state.tracks = pl.tracks.map((t) => ({ ...t }));
+        stopPlayback();
+        saveState();
+        renderTrackList();
+      });
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById('save-playlist-btn').addEventListener('click', () => {
+    if (!state.tracks.length) return;
+    const name = prompt('Playlist name:');
+    if (!name || !name.trim()) return;
+    state.playlists.push({ id: Date.now().toString(36), name: name.trim(), tracks: state.tracks.map((t) => ({ ...t })) });
+    saveState();
+    renderPlaylistList();
+  });
+
+  // ---------- Sleep timer ----------
+  let sleepTimerEndsAt = null;
+  let sleepTimerInterval = null;
+
+  function updateSleepTimerStatus() {
+    const statusEl = document.getElementById('sleep-timer-status');
+    if (!sleepTimerEndsAt) { statusEl.textContent = ''; return; }
+    const remaining = sleepTimerEndsAt - Date.now();
+    if (remaining <= 0) {
+      clearInterval(sleepTimerInterval);
+      sleepTimerEndsAt = null;
+      if (mode === 'stream') {
+        hideStreamFrame();
+        mode = 'idle';
+        npTitle.textContent = 'Nothing playing';
+        npSub.textContent = 'Add a track or streaming link to begin';
+      } else {
+        audioEl.pause();
+      }
+      statusEl.textContent = '';
+      document.querySelectorAll('#sleep-timer-row .chip').forEach((c) => c.classList.toggle('active', c.dataset.sleepmin === '0'));
+      if (window.CVGame) CVGame.showToast({ icon: '😴', title: 'Sleep timer ended', subtitle: 'Playback paused' });
+      return;
+    }
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    statusEl.textContent = `Stopping in ${mins}:${String(secs).padStart(2, '0')}`;
+  }
+
+  document.querySelectorAll('#sleep-timer-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#sleep-timer-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      clearInterval(sleepTimerInterval);
+      const min = Number(chip.dataset.sleepmin);
+      if (min === 0) {
+        sleepTimerEndsAt = null;
+        document.getElementById('sleep-timer-status').textContent = '';
+        return;
+      }
+      sleepTimerEndsAt = Date.now() + min * 60000;
+      updateSleepTimerStatus();
+      sleepTimerInterval = setInterval(updateSleepTimerStatus, 1000);
+    });
+  });
 
   document.getElementById('add-files-btn').addEventListener('click', async () => {
     const files = await window.codevibe.pickAudioFiles();
@@ -562,6 +694,7 @@
       state.tracks.push(...files);
       saveState();
       renderTrackList();
+      if (window.CVGame) files.forEach(() => CVGame.recordEvent('trackAdded'));
     }
   });
   document.getElementById('add-folder-btn').addEventListener('click', async () => {
@@ -570,6 +703,7 @@
       state.tracks.push(...files);
       saveState();
       renderTrackList();
+      if (window.CVGame) files.forEach(() => CVGame.recordEvent('trackAdded'));
     }
   });
 
@@ -591,6 +725,7 @@
     state.tracks.push(...added);
     saveState();
     renderTrackList();
+    if (window.CVGame) added.forEach(() => CVGame.recordEvent('trackAdded'));
     state.activeTab = 'library';
     setActiveTab('library');
     saveState();
@@ -686,6 +821,7 @@
 
   shuffleBtn.addEventListener('click', () => {
     state.shuffle = !state.shuffle;
+    if (state.shuffle && window.CVGame) CVGame.recordEvent('shuffleUsed');
     updateShuffleRepeatUi();
     saveState();
   });
@@ -845,6 +981,7 @@
     mode = 'stream';
     lastStreamRaw = raw;
     hideStreamError();
+    if (window.CVGame) CVGame.recordEvent('streamLoaded');
     audioEl.pause();
     streamFrame.src = embed;
     streamFrameWrap.classList.remove('hidden');
@@ -891,6 +1028,17 @@
   });
   document.getElementById('stream-url').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('stream-load-btn').click();
+  });
+
+  // Opens a YouTube search in the user's browser for popular gaming lofi
+  // remixes — nothing is embedded or bundled in-app, this just helps find a
+  // link to paste above, so no copyrighted content ever ships with CodeVibe.
+  document.querySelectorAll('#gaming-lofi-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      if (!window.codevibe || !window.codevibe.openExternal) return;
+      const query = `${chip.dataset.lofiQuery} lofi`;
+      window.codevibe.openExternal('https://www.youtube.com/results?search_query=' + encodeURIComponent(query));
+    });
   });
 
   // ---------- Shared helper for remote (Jellyfin/Plex) playback ----------
@@ -1422,6 +1570,19 @@
         drawAmbient(t);
       }
     }
+
+    // Beat-reactive avatar: a light pulse driven by live audio energy, layered
+    // on top of the widget's own idle bob (which lives on the outer wrapper).
+    if (typeof avatarWidgetCanvas !== 'undefined' && avatarWidgetCanvas) {
+      if (mode === 'local' && analyser && !audioEl.paused) {
+        analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, v) => a + v, 0) / dataArray.length / 255;
+        avatarWidgetCanvas.style.transform = `scale(${1 + avg * 0.25})`;
+      } else {
+        avatarWidgetCanvas.style.transform = 'scale(1)';
+      }
+    }
+
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
@@ -1503,13 +1664,506 @@
     });
   }
 
+  // ---------- Gamification: Avatar / Shop / Progress ----------
+  const coinBadge = document.getElementById('coin-badge');
+  const avatarPreviewEl = document.getElementById('avatar-preview');
+  const avatarWidgetEl = document.getElementById('avatar-widget');
+  const avatarWidgetCanvas = document.getElementById('avatar-widget-canvas');
+  const petPreviewEl = document.getElementById('pet-preview');
+  const petWidgetCanvas = document.getElementById('pet-widget-canvas');
+  const SHOP_CATEGORY_LABELS = { hair: 'Hair Styles', outfit: 'Outfits', accessory: 'Accessories', aura: 'Auras', hat: 'Hats', held: 'Held Items', pet: 'Pets', scene: 'Scenes' };
+
+  function updateCoinBadge() {
+    if (!window.CVGame) return;
+    coinBadge.textContent = `🪙 ${CVGame.state.coins}`;
+  }
+
+  function applyAvatarAura() {
+    if (!window.CVGame) return;
+    const aura = CVGame.state.avatar.aura || 'none';
+    avatarWidgetEl.className = 'avatar-widget aura-' + aura;
+    avatarWidgetEl.classList.toggle('hidden', !CVGame.state.avatarWidgetVisible);
+  }
+
+  function refreshAvatarVisuals() {
+    if (!window.CVGame) return;
+    const svg = CVAvatar.buildAvatarSVG(CVGame.state.avatar);
+    avatarPreviewEl.innerHTML = svg;
+    avatarWidgetCanvas.innerHTML = svg;
+    applyAvatarAura();
+    updateCoinBadge();
+    const petSvg = CVAvatar.buildPetSVG(CVGame.state.pet.species, CVGame.state.pet.color);
+    petPreviewEl.innerHTML = petSvg;
+    petWidgetCanvas.innerHTML = petSvg;
+  }
+
+  function createItemCard({ label, owned, equipped, cost, onClick }) {
+    const card = document.createElement('div');
+    card.className = 'item-card' + (equipped ? ' active' : '') + (!owned ? ' locked' : '');
+    const name = document.createElement('span');
+    name.className = 'item-card-label';
+    name.textContent = label;
+    const badge = document.createElement('span');
+    badge.className = 'item-card-badge';
+    badge.textContent = owned ? (equipped ? 'Equipped' : 'Owned') : `🔒 ${cost}`;
+    card.appendChild(name);
+    card.appendChild(badge);
+    card.addEventListener('click', onClick);
+    return card;
+  }
+
+  function tryEquip(category, key) {
+    if (!CVGame.isOwned(category, key)) {
+      const result = CVGame.buyItem(category, key);
+      if (!result.ok) {
+        CVGame.showToast({ icon: '🪙', title: 'Not enough Vibe Coins', subtitle: `Need ${result.missing} more — keep vibing to earn more!` });
+        return;
+      }
+    }
+    CVGame.equip(category, key);
+    if (category === 'scene') { renderSceneRow(); applyBackgroundMode(); }
+  }
+
+  function renderAvatarCatalogs() {
+    if (!window.CVGame) return;
+    const avatar = CVGame.state.avatar;
+
+    const bodyRow = document.getElementById('avatar-body-row');
+    bodyRow.innerHTML = '';
+    Object.entries(CVAvatar.BODY_TYPES).forEach(([key, def]) => {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (avatar.bodyType === key ? ' active' : '');
+      chip.textContent = def.label;
+      chip.addEventListener('click', () => CVGame.setAvatarField('bodyType', key));
+      bodyRow.appendChild(chip);
+    });
+
+    const skinRow = document.getElementById('avatar-skin-row');
+    skinRow.innerHTML = '';
+    CVAvatar.SKIN_TONES.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (avatar.skinTone.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.title = hex;
+      sw.addEventListener('click', () => CVGame.setAvatarField('skinTone', hex));
+      skinRow.appendChild(sw);
+    });
+
+    function renderStyleGrid(rowId, catalog, category, currentKey) {
+      const row = document.getElementById(rowId);
+      row.innerHTML = '';
+      Object.entries(catalog).forEach(([key, def]) => {
+        const owned = CVGame.isOwned(category, key);
+        const cost = (CVGame.SHOP_ITEMS.find((i) => i.id === `${category}:${key}`) || {}).cost;
+        row.appendChild(createItemCard({
+          label: def.label, owned, equipped: currentKey === key, cost,
+          onClick: () => tryEquip(category, key)
+        }));
+      });
+    }
+    renderStyleGrid('avatar-hair-row', CVAvatar.HAIR_STYLES, 'hair', avatar.hair);
+    renderStyleGrid('avatar-outfit-row', CVAvatar.OUTFIT_STYLES, 'outfit', avatar.outfit);
+    renderStyleGrid('avatar-accessory-row', CVAvatar.ACCESSORY_STYLES, 'accessory', avatar.accessory);
+    renderStyleGrid('avatar-hat-row', CVAvatar.HAT_STYLES, 'hat', avatar.hat);
+    renderStyleGrid('avatar-held-row', CVAvatar.HELD_ITEM_STYLES, 'held', avatar.held);
+    renderStyleGrid('avatar-aura-row', CVAvatar.AURA_STYLES, 'aura', avatar.aura);
+
+    const hairColorRow = document.getElementById('avatar-haircolor-row');
+    hairColorRow.innerHTML = '';
+    CVAvatar.HAIR_COLORS.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (avatar.hairColor.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.addEventListener('click', () => CVGame.setAvatarField('hairColor', hex));
+      hairColorRow.appendChild(sw);
+    });
+
+    const outfitColorRow = document.getElementById('avatar-outfitcolor-row');
+    outfitColorRow.innerHTML = '';
+    CVAvatar.OUTFIT_COLORS.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (avatar.outfitColor.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.addEventListener('click', () => CVGame.setAvatarField('outfitColor', hex));
+      outfitColorRow.appendChild(sw);
+    });
+
+    const hatColorRow = document.getElementById('avatar-hatcolor-row');
+    hatColorRow.innerHTML = '';
+    CVAvatar.OUTFIT_COLORS.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (avatar.hatColor.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.addEventListener('click', () => CVGame.setAvatarField('hatColor', hex));
+      hatColorRow.appendChild(sw);
+    });
+  }
+
+  function renderPetCatalog() {
+    if (!window.CVGame) return;
+    const pet = CVGame.state.pet;
+
+    const speciesRow = document.getElementById('pet-species-row');
+    speciesRow.innerHTML = '';
+    Object.entries(CVAvatar.PET_STYLES).forEach(([key, def]) => {
+      const owned = CVGame.isOwned('pet', key);
+      const cost = (CVGame.SHOP_ITEMS.find((i) => i.id === `pet:${key}`) || {}).cost;
+      speciesRow.appendChild(createItemCard({
+        label: def.label, owned, equipped: pet.species === key, cost,
+        onClick: () => tryEquip('pet', key)
+      }));
+    });
+
+    const colorRow = document.getElementById('pet-color-row');
+    colorRow.innerHTML = '';
+    CVAvatar.OUTFIT_COLORS.forEach((hex) => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (pet.color.toLowerCase() === hex.toLowerCase() ? ' active' : '');
+      sw.style.background = hex;
+      sw.addEventListener('click', () => CVGame.setPetField('color', hex));
+      colorRow.appendChild(sw);
+    });
+  }
+
+  function renderShop() {
+    if (!window.CVGame) return;
+    const container = document.getElementById('shop-sections');
+    container.innerHTML = '';
+    CVGame.CATEGORIES.forEach((category) => {
+      const items = CVGame.SHOP_ITEMS.filter((i) => i.category === category);
+      if (!items.length) return;
+      const heading = document.createElement('h3');
+      heading.textContent = SHOP_CATEGORY_LABELS[category] || category;
+      container.appendChild(heading);
+      const grid = document.createElement('div');
+      grid.className = 'item-grid';
+      items.forEach((item) => {
+        const owned = CVGame.isOwned(category, item.key);
+        const equipped = category === 'scene' ? CVGame.state.scene === item.key
+          : category === 'pet' ? CVGame.state.pet.species === item.key
+          : CVGame.state.avatar[category] === item.key;
+        grid.appendChild(createItemCard({ label: item.label, owned, equipped, cost: item.cost, onClick: () => tryEquip(category, item.key) }));
+      });
+      container.appendChild(grid);
+    });
+  }
+
+  function renderSceneRow() {
+    if (!window.CVGame) return;
+    const row = document.getElementById('scene-row');
+    row.innerHTML = '';
+    Object.entries(CVGame.SCENES).forEach(([key, def]) => {
+      const owned = CVGame.isOwned('scene', key);
+      row.appendChild(createItemCard({ label: def.label, owned, equipped: CVGame.state.scene === key, cost: def.cost, onClick: () => tryEquip('scene', key) }));
+    });
+  }
+
+  function renderProgress() {
+    if (!window.CVGame) return;
+    const s = CVGame.state;
+    document.getElementById('stat-level').textContent = s.level;
+    document.getElementById('stat-coins').textContent = s.coins;
+    document.getElementById('stat-streak').textContent = s.streakCount;
+    const h = Math.floor(s.totalMinutesListened / 60), m = s.totalMinutesListened % 60;
+    document.getElementById('stat-time').textContent = `${h}h ${m}m`;
+
+    const need = CVGame.xpForLevel(s.level);
+    document.getElementById('xp-bar-fill').style.width = `${Math.min(100, (s.xp / need) * 100)}%`;
+    document.getElementById('xp-bar-label').textContent = `${s.xp} / ${need} XP`;
+
+    const list = document.getElementById('achievement-list');
+    list.innerHTML = '';
+    CVGame.ACHIEVEMENTS.forEach((a) => {
+      const unlocked = s.achievementsUnlocked.includes(a.id);
+      const li = document.createElement('li');
+      li.className = 'achievement-item' + (unlocked ? ' unlocked' : '');
+      li.innerHTML = '<span class="achievement-icon"></span><span class="achievement-text"><span class="achievement-name"></span><span class="achievement-desc"></span></span><span class="achievement-reward"></span>';
+      li.querySelector('.achievement-icon').textContent = a.icon;
+      li.querySelector('.achievement-name').textContent = a.name;
+      li.querySelector('.achievement-desc').textContent = a.desc;
+      li.querySelector('.achievement-reward').textContent = unlocked ? '✓' : '+' + a.reward;
+      list.appendChild(li);
+    });
+
+    renderQuestList('daily-quest-list', CVGame.DAILY_QUESTS, s.dailyProgress, s.dailyQuestsClaimed);
+    renderQuestList('weekly-quest-list', CVGame.WEEKLY_QUESTS, s.weeklyProgress, s.weeklyQuestsClaimed);
+    renderHistoryChart();
+  }
+
+  function renderQuestList(listId, quests, progressObj, claimed) {
+    const list = document.getElementById(listId);
+    list.innerHTML = '';
+    quests.forEach((q) => {
+      const done = claimed.includes(q.id);
+      const current = Math.min(q.target, q.progress(progressObj));
+      const li = document.createElement('li');
+      li.className = 'achievement-item' + (done ? ' unlocked' : '');
+      li.innerHTML = '<span class="achievement-icon"></span><span class="achievement-text"><span class="achievement-name"></span><span class="achievement-desc"></span></span><span class="achievement-reward"></span>';
+      li.querySelector('.achievement-icon').textContent = q.icon;
+      li.querySelector('.achievement-name').textContent = q.name;
+      li.querySelector('.achievement-desc').textContent = done ? q.desc : `${q.desc} (${current}/${q.target})`;
+      li.querySelector('.achievement-reward').textContent = done ? '✓' : '+' + q.reward;
+      list.appendChild(li);
+    });
+  }
+
+  function renderHistoryChart() {
+    const container = document.getElementById('history-chart');
+    container.innerHTML = '';
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+    const minutesByDay = days.map((d) => CVGame.state.dailyMinutes[d.toISOString().slice(0, 10)] || 0);
+    const max = Math.max(1, ...minutesByDay);
+    days.forEach((d, i) => {
+      const bar = document.createElement('div');
+      bar.className = 'history-bar';
+      const fill = document.createElement('div');
+      fill.className = 'history-bar-fill';
+      fill.style.height = `${Math.max(4, (minutesByDay[i] / max) * 100)}%`;
+      fill.title = `${minutesByDay[i]} min`;
+      const label = document.createElement('div');
+      label.className = 'history-bar-label';
+      label.textContent = d.toLocaleDateString(undefined, { weekday: 'narrow' });
+      bar.appendChild(fill);
+      bar.appendChild(label);
+      container.appendChild(bar);
+    });
+  }
+
+  // ---------- Vibe Card export ----------
+  function loadSvgImage(svgString) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+    });
+  }
+
+  async function exportVibeCard() {
+    const s = CVGame.state;
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 800;
+    const ctx = canvas.getContext('2d');
+    const bg1 = getComputedStyle(document.body).getPropertyValue('--bg-1').trim() || '#241726';
+    const bg2 = getComputedStyle(document.body).getPropertyValue('--bg-2').trim() || '#0d0714';
+    const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#ff9f6e';
+
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, bg1);
+    grad.addColorStop(1, bg2);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = accent;
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText('CodeVibe', canvas.width / 2, 64);
+
+    const avatarImg = await loadSvgImage(CVAvatar.buildAvatarSVG(s.avatar));
+    const imgW = 240, imgH = 264;
+    ctx.drawImage(avatarImg, (canvas.width - imgW) / 2, 90, imgW, imgH);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.fillText(`Level ${s.level}`, canvas.width / 2, 400);
+
+    ctx.font = '20px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    const hours = Math.floor(s.totalMinutesListened / 60), mins = s.totalMinutesListened % 60;
+    const lines = [
+      `🪙 ${s.coins} Vibe Coins`,
+      `🔥 ${s.streakCount} Day Streak`,
+      `⏱️ ${hours}h ${mins}m Vibe Time`,
+      `🏆 ${s.achievementsUnlocked.length} Achievements`
+    ];
+    lines.forEach((line, i) => ctx.fillText(line, canvas.width / 2, 450 + i * 38));
+
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText(new Date().toLocaleDateString(), canvas.width / 2, 770);
+
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'codevibe-vibe-card.png';
+    a.click();
+  }
+
+  document.getElementById('export-vibe-card-btn').addEventListener('click', () => {
+    if (window.CVGame) exportVibeCard();
+  });
+
+  document.getElementById('avatar-widget-toggle').addEventListener('change', (e) => {
+    if (!window.CVGame) return;
+    CVGame.state.avatarWidgetVisible = e.target.checked;
+    CVGame.save();
+    applyAvatarAura();
+  });
+
+  // Draggable avatar widget (same pattern as the clock widget)
+  (function makeAvatarDraggable() {
+    let dragging = false, offX = 0, offY = 0;
+    avatarWidgetEl.addEventListener('mousedown', (e) => {
+      dragging = true;
+      const rect = avatarWidgetEl.getBoundingClientRect();
+      offX = e.clientX - rect.left;
+      offY = e.clientY - rect.top;
+      avatarWidgetEl.style.right = 'auto';
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      avatarWidgetEl.style.left = `${e.clientX - offX}px`;
+      avatarWidgetEl.style.top = `${e.clientY - offY}px`;
+    });
+    window.addEventListener('mouseup', () => {
+      if (!dragging || !window.CVGame) return;
+      dragging = false;
+      CVGame.state.avatarPos = { left: avatarWidgetEl.style.left, top: avatarWidgetEl.style.top };
+      CVGame.save();
+    });
+  })();
+
+  // Ticks once a second while music/streaming is actually playing, converting
+  // real listening time into Vibe Coins + XP (see gamification.js).
+  setInterval(() => {
+    if (!window.CVGame) return;
+    const isVibing =
+      ((mode === 'local' || mode === 'remote') && !audioEl.paused) ||
+      (mode === 'stream' && !!streamFrame.src && streamErrorEl.classList.contains('hidden'));
+    if (isVibing) CVGame.addVibeSeconds(1);
+  }, 1000);
+
+  if (window.CVGame) {
+    CVGame.onChange(() => {
+      refreshAvatarVisuals();
+      renderProgress();
+      renderAvatarCatalogs();
+      renderPetCatalog();
+      renderShop();
+    });
+  }
+
+  // ---------- Focus timer ----------
+  const focusTimeEl = document.getElementById('focus-time');
+  const focusModeLabelEl = document.getElementById('focus-mode-label');
+  const focusWidgetEl = document.getElementById('focus-widget');
+  const focusWidgetTimeEl = document.getElementById('focus-widget-time');
+  const focusWidgetModeEl = document.getElementById('focus-widget-mode');
+  const focusStartBtn = document.getElementById('focus-start-btn');
+  const focusPauseBtn = document.getElementById('focus-pause-btn');
+
+  const focusTimer = {
+    running: false,
+    mode: 'focus', // 'focus' | 'break'
+    remainingSeconds: 25 * 60,
+    intervalId: null,
+    sessionsSinceLongBreak: 0
+  };
+
+  function formatMMSS(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function updateFocusDisplay() {
+    const text = formatMMSS(focusTimer.remainingSeconds);
+    const modeLabel = focusTimer.mode === 'focus' ? 'Focus' : 'Break';
+    focusTimeEl.textContent = text;
+    focusModeLabelEl.textContent = modeLabel;
+    focusWidgetTimeEl.textContent = text;
+    focusWidgetModeEl.textContent = modeLabel;
+    focusWidgetEl.classList.toggle('hidden', !focusTimer.running);
+    focusStartBtn.classList.toggle('hidden', focusTimer.running);
+    focusPauseBtn.classList.toggle('hidden', !focusTimer.running);
+  }
+
+  function focusTick() {
+    focusTimer.remainingSeconds -= 1;
+    if (focusTimer.remainingSeconds <= 0) {
+      if (focusTimer.mode === 'focus') {
+        if (window.CVGame) CVGame.completeFocusSession();
+        focusTimer.sessionsSinceLongBreak += 1;
+        const longBreak = focusTimer.sessionsSinceLongBreak % 4 === 0;
+        focusTimer.mode = 'break';
+        focusTimer.remainingSeconds = (longBreak ? 15 : 5) * 60;
+      } else {
+        focusTimer.mode = 'focus';
+        focusTimer.remainingSeconds = (window.CVGame ? CVGame.state.focusDurationMin : 25) * 60;
+        if (window.CVGame) CVGame.showToast({ icon: '⏰', title: "Break's over!", subtitle: 'Back to focusing.' });
+      }
+    }
+    updateFocusDisplay();
+  }
+
+  function startFocusTimer() {
+    if (focusTimer.running) return;
+    focusTimer.running = true;
+    focusTimer.intervalId = setInterval(focusTick, 1000);
+    updateFocusDisplay();
+  }
+
+  function pauseFocusTimer() {
+    focusTimer.running = false;
+    clearInterval(focusTimer.intervalId);
+    updateFocusDisplay();
+  }
+
+  function resetFocusTimer() {
+    pauseFocusTimer();
+    focusTimer.mode = 'focus';
+    focusTimer.remainingSeconds = (window.CVGame ? CVGame.state.focusDurationMin : 25) * 60;
+    updateFocusDisplay();
+  }
+
+  focusStartBtn.addEventListener('click', startFocusTimer);
+  focusPauseBtn.addEventListener('click', pauseFocusTimer);
+  document.getElementById('focus-reset-btn').addEventListener('click', resetFocusTimer);
+
+  document.querySelectorAll('#focus-duration-row .chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      if (focusTimer.running) return;
+      document.querySelectorAll('#focus-duration-row .chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      const min = Number(chip.dataset.focusmin);
+      if (window.CVGame) CVGame.setFocusDuration(min);
+      resetFocusTimer();
+    });
+  });
+
   // ---------- Init ----------
   async function init() {
+    if (window.CVGame) {
+      CVGame.init();
+      renderAvatarCatalogs();
+      renderPetCatalog();
+      renderShop();
+      renderSceneRow();
+      renderProgress();
+      refreshAvatarVisuals();
+      document.getElementById('avatar-widget-toggle').checked = CVGame.state.avatarWidgetVisible;
+      if (CVGame.state.avatarPos && CVGame.state.avatarPos.left) {
+        avatarWidgetEl.style.left = CVGame.state.avatarPos.left;
+        avatarWidgetEl.style.top = CVGame.state.avatarPos.top;
+        avatarWidgetEl.style.right = 'auto';
+      }
+      document.querySelectorAll('#focus-duration-row .chip').forEach((c) => {
+        c.classList.toggle('active', Number(c.dataset.focusmin) === CVGame.state.focusDurationMin);
+      });
+      resetFocusTimer();
+    }
+
     applyTheme();
     renderPresetGrid();
     syncColorInputs();
     renderAccentSwatches();
     renderTrackList();
+    renderPlaylistList();
     renderStreamHistory();
 
     await loadSecureTokens();
