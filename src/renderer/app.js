@@ -494,7 +494,7 @@
   const sceneBg = document.getElementById('scene-bg');
   const sceneControls = document.getElementById('scene-controls');
   const visualizerCanvas = document.getElementById('visualizer');
-  const SCENE_IDS = ['cozy_study', 'zen_garden', 'beach_sunset', 'enchanted_forest', 'retro_wave', 'pixel_world', 'cyberpunk_skyline', 'deep_space'];
+  const SCENE_IDS = ['cozy_study', 'zen_garden', 'beach_sunset', 'enchanted_forest', 'retro_wave', 'pixel_world', 'cyberpunk_skyline', 'deep_space', 'ring_world'];
 
   // Multi-depth parallax starfield for the Deep Space scene. Runs only while
   // that scene is on screen so it never costs CPU for the other scenes/modes.

@@ -228,7 +228,7 @@ async function testGamificationFlow(browser) {
   await page.click('.tab-btn[data-tab="shop"]');
   await page.waitForTimeout(150);
   const shopCardCount = await page.evaluate(() => document.querySelectorAll('#shop-sections .item-card').length);
-  assert.equal(shopCardCount, 43, 'shop should list all 43 purchasable items across every category');
+  assert.equal(shopCardCount, 44, 'shop should list all 44 purchasable items across every category');
 
   // Pet: buy + equip a non-default species and recolor it.
   await page.evaluate(() => { CVGame.state.coins = 1000; CVGame.save(); });
@@ -292,7 +292,7 @@ async function testGamificationFlow(browser) {
   await page.click('#bg-mode-row .chip[data-bgmode="scene"]');
   await page.waitForTimeout(150);
   const sceneCardCount = await page.evaluate(() => document.querySelectorAll('#scene-row .item-card').length);
-  assert.equal(sceneCardCount, 8, 'scene picker should render all 8 scenes');
+  assert.equal(sceneCardCount, 9, 'scene picker should render all 9 scenes');
   await clickCard('scene-row', 'Cyberpunk Skyline');
   await page.waitForTimeout(150);
   const sceneClass = await page.evaluate(() => document.getElementById('scene-bg').className);

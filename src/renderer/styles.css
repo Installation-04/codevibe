@@ -830,6 +830,65 @@ input[type="range"] {
   );
 }
 
+/* Ringworld — pixel-art homage to standing on a ring, looking up at the arc overhead */
+#scene-bg.scene-ring_world {
+  background:
+    radial-gradient(ellipse 140px 40px at 82% 12%, rgba(255,255,255,0.35), transparent 70%),
+    linear-gradient(180deg,
+      #0d2b4a 0%, #0d2b4a 14%,
+      #17456e 14%, #17456e 30%,
+      #2f7a8c 30%, #2f7a8c 48%,
+      #6fb98f 48%, #6fb98f 66%,
+      #bfe19a 66%, #bfe19a 82%,
+      #eef0b0 82%, #eef0b0 100%);
+  overflow: hidden;
+}
+#scene-bg.scene-ring_world::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8%;
+  background:
+    repeating-linear-gradient(90deg, #3a8f6e 0 16px, #45a67e 16px 32px),
+    linear-gradient(180deg, #2c6b52, #163a2c);
+  background-blend-mode: multiply;
+  box-shadow: 0 -2px 0 rgba(0,0,0,0.4);
+}
+#scene-bg.scene-ring_world .scene-pixel-sun {
+  left: 80%;
+  top: 8%;
+  width: 90px;
+  height: 90px;
+  background: #fffdf0;
+  box-shadow: 0 0 50px rgba(255,250,220,0.85), 0 0 100px rgba(255,250,220,0.4);
+}
+#scene-bg.scene-ring_world .scene-pixel-hills {
+  background: #16332a;
+  clip-path: polygon(
+    0% 100%, 0% 70%, 8% 70%, 8% 50%, 16% 50%, 16% 62%, 24% 62%, 24% 42%, 32% 42%, 32% 58%,
+    40% 58%, 40% 32%, 48% 32%, 48% 55%, 56% 55%, 56% 45%, 64% 45%, 64% 62%, 72% 62%, 72% 38%,
+    80% 38%, 80% 56%, 88% 56%, 88% 48%, 96% 48%, 96% 68%, 100% 68%, 100% 100%
+  );
+}
+.scene-ring-arc {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: -1520px;
+  width: 1900px;
+  height: 1900px;
+  margin-left: -950px;
+  border-radius: 50%;
+  border: 46px solid #93a3ba;
+  box-shadow:
+    inset 0 0 0 6px rgba(20,30,45,0.4),
+    inset 0 0 0 14px rgba(255,255,255,0.12),
+    0 0 60px rgba(190,220,255,0.35);
+}
+
 /* Deep Space — layered nebula + parallax starfield canvas + planet + docking platform */
 #scene-bg.scene-deep_space {
   background: linear-gradient(180deg, #060716 0%, #02030a 55%, #000000 100%);
@@ -877,12 +936,15 @@ input[type="range"] {
   pointer-events: none;
 }
 
-.scene-planet, .scene-station, .scene-grid, .scene-pixel-sun, .scene-pixel-hills { display: none; }
+.scene-planet, .scene-station, .scene-grid, .scene-pixel-sun, .scene-pixel-hills, .scene-ring-arc { display: none; }
 #scene-bg.scene-deep_space .scene-planet,
 #scene-bg.scene-deep_space .scene-station { display: block; }
 #scene-bg.scene-retro_wave .scene-grid { display: block; }
 #scene-bg.scene-pixel_world .scene-pixel-sun,
 #scene-bg.scene-pixel_world .scene-pixel-hills { display: block; }
+#scene-bg.scene-ring_world .scene-pixel-sun,
+#scene-bg.scene-ring_world .scene-pixel-hills,
+#scene-bg.scene-ring_world .scene-ring-arc { display: block; }
 
 .scene-planet {
   position: absolute;
