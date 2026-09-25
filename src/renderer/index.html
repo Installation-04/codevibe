@@ -222,13 +222,23 @@
         <h3>Last 7 Days</h3>
         <div class="history-chart" id="history-chart"></div>
 
+        <h3>Listening Streak</h3>
+        <div class="heatmap" id="streak-heatmap"></div>
+
         <h3>Daily Quests</h3>
         <ul id="daily-quest-list" class="quest-list"></ul>
         <h3>Weekly Quests</h3>
         <ul id="weekly-quest-list" class="quest-list"></ul>
 
-        <h3>Achievements</h3>
+        <div class="section-header-row">
+          <h3>Achievements</h3>
+          <div class="chip-row chip-row-sm">
+            <button class="chip active" data-achview="list">List</button>
+            <button class="chip active-off" data-achview="trophy">Trophy Case</button>
+          </div>
+        </div>
         <ul id="achievement-list" class="achievement-list"></ul>
+        <div id="trophy-case" class="trophy-case hidden"></div>
       </section>
 
       <section class="tab-panel" id="panel-theme">
@@ -251,6 +261,11 @@
           <label for="bg-color-2">Background B</label>
           <input type="color" id="bg-color-2" value="#0d0714" />
         </div>
+        <div class="panel-actions">
+          <input id="custom-theme-name" type="text" class="field-input" placeholder="Name this theme…" maxlength="24" />
+          <button id="save-custom-theme-btn" class="btn btn-ghost">Save as Theme</button>
+        </div>
+        <div id="custom-theme-grid" class="preset-grid"></div>
 
         <h3>Visualizer Style</h3>
         <div class="chip-row" id="viz-style-row">
@@ -353,6 +368,61 @@
           <label for="clock-size">Size</label>
           <input type="range" id="clock-size" min="60" max="160" value="100" />
         </div>
+
+        <h3>Ambient Sounds</h3>
+        <p class="hint">Layer generated ambience under your music, or add your own looping ambient track.</p>
+        <div class="slider-row">
+          <label for="ambient-rain">🌧️ Rain</label>
+          <input type="range" id="ambient-rain" min="0" max="100" value="0" />
+        </div>
+        <div class="slider-row">
+          <label for="ambient-fire">🔥 Fire</label>
+          <input type="range" id="ambient-fire" min="0" max="100" value="0" />
+        </div>
+        <div class="slider-row">
+          <label for="ambient-cafe">☕ Café</label>
+          <input type="range" id="ambient-cafe" min="0" max="100" value="0" />
+        </div>
+        <div class="panel-actions">
+          <button id="ambient-custom-btn" class="btn btn-ghost">Add Custom Ambient Track</button>
+          <button id="ambient-custom-clear-btn" class="btn btn-ghost hidden">Remove</button>
+        </div>
+        <div class="slider-row hidden" id="ambient-custom-row">
+          <label for="ambient-custom">🎵 Custom</label>
+          <input type="range" id="ambient-custom" min="0" max="100" value="60" />
+        </div>
+        <p class="hint" id="ambient-custom-label"></p>
+
+        <h3>Shortcuts &amp; Reminders</h3>
+        <label class="switch-row">
+          <input type="checkbox" id="global-hotkeys-toggle" checked />
+          <span>Global media hotkeys (play/pause, next/prev, Ctrl/Cmd+Alt+F for focus)</span>
+        </label>
+        <label class="switch-row">
+          <input type="checkbox" id="gamepad-nav-toggle" />
+          <span>Gamepad navigation</span>
+        </label>
+        <p class="hint">Gentle break reminder</p>
+        <div class="chip-row" id="break-reminder-row">
+          <button class="chip active" data-breakmin="0">Off</button>
+          <button class="chip active-off" data-breakmin="30">30m</button>
+          <button class="chip active-off" data-breakmin="45">45m</button>
+          <button class="chip active-off" data-breakmin="60">60m</button>
+          <button class="chip active-off" data-breakmin="90">90m</button>
+        </div>
+
+        <h3>Profile</h3>
+        <div class="panel-actions">
+          <button id="export-profile-btn" class="btn btn-ghost">Export Profile</button>
+          <button id="import-profile-btn" class="btn btn-ghost">Import Profile</button>
+        </div>
+        <p class="hint">Save your whole CodeVibe profile — avatar, coins, achievements, playlists, and settings — to a file, or restore one on another machine.</p>
+
+        <h3>Mini Widget</h3>
+        <div class="panel-actions">
+          <button id="mini-widget-btn" class="btn btn-ghost">Open Floating Widget</button>
+        </div>
+        <p class="hint">A small always-on-top window showing your avatar and focus timer, so it can float over your editor.</p>
       </section>
     </aside>
 
@@ -394,6 +464,20 @@
         <input id="volume" type="range" min="0" max="100" value="70" title="Volume" />
       </div>
     </main>
+  </div>
+
+  <div id="whats-new-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="whats-new-title">What's New</h2>
+        <button id="whats-new-close" class="icon-btn-sm" title="Close">✕</button>
+      </div>
+      <pre id="whats-new-body" class="modal-body"></pre>
+      <div class="modal-actions">
+        <button id="whats-new-github-btn" class="btn btn-ghost">View on GitHub</button>
+        <button id="whats-new-ok-btn" class="btn">Got it</button>
+      </div>
+    </div>
   </div>
 
   <audio id="audio-el" crossorigin="anonymous"></audio>

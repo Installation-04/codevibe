@@ -32,7 +32,17 @@ async function mockBridge(context) {
       secureGet: async () => null,
       secureDelete: async () => {},
       toFileUrl: async (p) => 'file://' + p,
-      getPathForFile: (f) => f.name
+      getPathForFile: (f) => f.name,
+
+      setGlobalHotkeys: async (enabled) => { window.__globalHotkeysEnabled = enabled; },
+      onHotkey: (callback) => { window.__hotkeyCallback = callback; return () => {}; },
+      toggleMiniWidget: async () => { window.__miniWidgetToggled = (window.__miniWidgetToggled || 0) + 1; return true; },
+      onMiniWidgetState: (callback) => { window.__miniWidgetStateCallback = callback; return () => {}; },
+      // Mirrors main.js's own merge behavior (it accumulates fields onto the
+      // last known payload) rather than a bare overwrite, so a later tick
+      // that omits the deduped avatarSvg doesn't erase an earlier one.
+      sendWidgetState: (payload) => { window.__lastWidgetPayload = { ...(window.__lastWidgetPayload || {}), ...payload }; },
+      sendWidgetAction: (action) => { window.__lastWidgetAction = action; }
     };
   });
 }
@@ -317,6 +327,120 @@ async function testGamificationFlow(browser) {
   assert.deepEqual(errors, [], 'expected zero console errors during the avatar/shop/progress/scene flow');
 }
 
+async function testWave3Features(browser) {
+  const context = await browser.newContext();
+  await mockBridge(context);
+  const page = await context.newPage();
+  const errors = trackErrors(page);
+
+  await page.goto(INDEX_URL);
+  await page.waitForTimeout(300);
+
+  // ---- Custom theme creator ----
+  await page.click('.tab-btn[data-tab="theme"]');
+  await page.waitForTimeout(150);
+  await page.fill('#custom-theme-name', 'Test Theme');
+  await page.click('#save-custom-theme-btn');
+  await page.waitForTimeout(100);
+  const customThemeCount = await page.evaluate(() =>
+    Object.keys(JSON.parse(localStorage.getItem('codevibe.settings.v1')).customThemes).length);
+  assert.equal(customThemeCount, 1, 'saving a custom theme should add it to settings');
+  const customCardCount = await page.evaluate(() => document.getElementById('custom-theme-grid').children.length);
+  assert.equal(customCardCount, 1, 'custom theme grid should render the saved theme');
+  // Delete it back out.
+  await page.click('#custom-theme-grid .preset-card-delete');
+  await page.waitForTimeout(100);
+  const afterDelete = await page.evaluate(() =>
+    Object.keys(JSON.parse(localStorage.getItem('codevibe.settings.v1')).customThemes).length);
+  assert.equal(afterDelete, 0, 'deleting a custom theme should remove it from settings');
+
+  // ---- Ambient mixer sliders ----
+  await page.fill('#ambient-rain', '50');
+  await page.dispatchEvent('#ambient-rain', 'input');
+  await page.waitForTimeout(50);
+  const ambientVol = await page.evaluate(() => JSON.parse(localStorage.getItem('codevibe.settings.v1')).ambientVolumes.rain);
+  assert.equal(ambientVol, 50, 'moving the rain slider should persist its volume');
+
+  // ---- Break reminder ----
+  await page.click('#break-reminder-row .chip[data-breakmin="45"]');
+  await page.waitForTimeout(50);
+  const breakMin = await page.evaluate(() => JSON.parse(localStorage.getItem('codevibe.settings.v1')).breakReminderMin);
+  assert.equal(breakMin, 45, 'picking a break-reminder interval should persist it');
+
+  // ---- Global hotkeys toggle + simulated hotkey firing ----
+  const hotkeysDefault = await page.locator('#global-hotkeys-toggle').isChecked();
+  assert.equal(hotkeysDefault, true, 'global hotkeys should default to enabled');
+  await page.evaluate(() => window.__hotkeyCallback && window.__hotkeyCallback('play-pause'));
+  await page.waitForTimeout(50); // should not throw with no track loaded
+
+  // ---- Gamepad nav toggle ----
+  await page.click('#gamepad-nav-toggle');
+  await page.waitForTimeout(50);
+  const gamepadNav = await page.evaluate(() => JSON.parse(localStorage.getItem('codevibe.settings.v1')).gamepadNav);
+  assert.equal(gamepadNav, true, 'toggling gamepad navigation should persist it');
+
+  // ---- Mini widget button wiring ----
+  await page.click('#mini-widget-btn');
+  await page.waitForTimeout(50);
+  const widgetToggled = await page.evaluate(() => window.__miniWidgetToggled);
+  assert.equal(widgetToggled, 1, 'the mini-widget button should call toggleMiniWidget once');
+  await page.evaluate(() => window.__miniWidgetStateCallback && window.__miniWidgetStateCallback(true));
+  await page.waitForTimeout(1100); // let the 1s widget-state push tick at least once
+  const widgetPayload = await page.evaluate(() => window.__lastWidgetPayload);
+  assert.ok(widgetPayload && typeof widgetPayload.focusTime === 'string', 'opening the mini widget should push widget state including focusTime');
+  assert.ok(widgetPayload.avatarSvg, 'the first widget-state push after opening should include the avatar SVG');
+
+  // ---- Progress tab: streak heatmap + trophy case ----
+  await page.evaluate(() => { for (let i = 0; i < 5; i++) CVGame.addVibeSeconds(60); });
+  await page.click('.tab-btn[data-tab="progress"]');
+  await page.waitForTimeout(150);
+  const heatmapCellCount = await page.evaluate(() => document.querySelectorAll('.heatmap-cell').length);
+  assert.ok(heatmapCellCount >= 56, 'streak heatmap should render at least 8 weeks of cells');
+
+  await page.click('[data-achview="trophy"]');
+  await page.waitForTimeout(100);
+  const trophyVisible = await page.evaluate(() => ({
+    listHidden: document.getElementById('achievement-list').classList.contains('hidden'),
+    trophyHidden: document.getElementById('trophy-case').classList.contains('hidden'),
+    badgeCount: document.querySelectorAll('.trophy-badge').length
+  }));
+  assert.equal(trophyVisible.listHidden, true, 'switching to trophy view should hide the list view');
+  assert.equal(trophyVisible.trophyHidden, false, 'switching to trophy view should show the trophy case');
+  assert.equal(trophyVisible.badgeCount, 24, 'trophy case should render all 24 achievement badges');
+
+  // ---- Profile export/import round-trip ----
+  // The blob: URL itself is only asserted by shape here — actually fetching it
+  // would hit the page's own connect-src CSP (blob: isn't allowlisted there),
+  // which is fine since the real download path is an <a download> click, not
+  // a fetch. The Blob constructor is intercepted instead to inspect content.
+  await page.click('.tab-btn[data-tab="theme"]');
+  await page.waitForTimeout(100);
+  const result = await page.evaluate(async () => {
+    const originalClick = HTMLAnchorElement.prototype.click;
+    const OriginalBlob = window.Blob;
+    let capturedText = null;
+    let capturedHref = null;
+    window.Blob = class extends OriginalBlob {
+      constructor(parts, opts) {
+        super(parts, opts);
+        capturedText = parts[0];
+      }
+    };
+    HTMLAnchorElement.prototype.click = function () { capturedHref = this.href; };
+    document.getElementById('export-profile-btn').click();
+    await new Promise((r) => setTimeout(r, 100));
+    HTMLAnchorElement.prototype.click = originalClick;
+    window.Blob = OriginalBlob;
+    return { href: capturedHref, json: JSON.parse(capturedText) };
+  });
+  assert.ok(result.href && result.href.startsWith('blob:'), 'exporting a profile should produce a downloadable blob URL');
+  assert.equal(result.json.codevibeProfile, 1, 'exported profile should carry the expected format marker');
+  assert.ok(result.json.game && typeof result.json.game.coins === 'number', 'exported profile should include game state');
+
+  await context.close();
+  assert.deepEqual(errors, [], 'expected zero console errors while exercising wave-3 settings/mixer/mini-widget/profile features');
+}
+
 async function testJellyfinFlow(browser) {
   const context = await browser.newContext();
   await mockBridge(context);
@@ -452,6 +576,7 @@ async function run() {
   const tests = [
     ['structure & controls', testStructureAndControls],
     ['avatar/shop/progress/scenes', testGamificationFlow],
+    ['wave-3: themes/ambient/hotkeys/widget/profile', testWave3Features],
     ['Jellyfin connect/browse/play', testJellyfinFlow],
     ['Plex connect/browse/play', testPlexFlow]
   ];

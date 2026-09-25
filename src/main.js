@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, safeStorage, globalShortcut } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -29,6 +29,11 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   Menu.setApplicationMenu(null);
+
+  // Deferred until the page (and its update-status listener in app.js) has
+  // actually loaded, so a pending "What's New" event isn't sent before
+  // anything is there to receive it.
+  mainWindow.webContents.once('did-finish-load', () => checkPendingWhatsNew());
 
   // Deny any attempt (from the main page or an embedded <webview> guest) to spawn
   // a new native window — e.g. an ad popup inside a YouTube/Spotify embed.
@@ -91,11 +96,100 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// ---------- Floating mini-widget window ----------
+let miniWidget = null;
+// The main window pushes state on a 1s interval; the widget's own listener
+// isn't registered until its page finishes loading, so a payload sent in
+// that gap would otherwise just be lost. Cache the latest one and replay it
+// once the widget is actually ready to receive it.
+let lastWidgetPayload = null;
+
+function createMiniWidget() {
+  if (miniWidget && !miniWidget.isDestroyed()) {
+    miniWidget.focus();
+    return;
+  }
+  miniWidget = new BrowserWindow({
+    width: 220,
+    height: 300,
+    minWidth: 180,
+    minHeight: 240,
+    frame: false,
+    alwaysOnTop: true,
+    resizable: true,
+    skipTaskbar: true,
+    backgroundColor: '#14161a',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
+  });
+  miniWidget.setAlwaysOnTop(true, 'floating');
+  miniWidget.loadFile(path.join(__dirname, 'renderer', 'widget.html'));
+  miniWidget.webContents.once('did-finish-load', () => {
+    if (lastWidgetPayload && miniWidget && !miniWidget.isDestroyed()) {
+      miniWidget.webContents.send('widget-state-update', lastWidgetPayload);
+    }
+  });
+
+  // Same hardening posture as the main window: it's a local trusted page
+  // with no webview, but deny popups/navigation anyway as defense in depth.
+  miniWidget.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  miniWidget.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) event.preventDefault();
+  });
+
+  miniWidget.on('closed', () => {
+    miniWidget = null;
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('mini-widget-state', false);
+  });
+
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('mini-widget-state', true);
+}
+
+ipcMain.handle('toggle-mini-widget', () => {
+  if (miniWidget && !miniWidget.isDestroyed()) {
+    miniWidget.close();
+    return false;
+  }
+  createMiniWidget();
+  return true;
+});
+
+ipcMain.on('widget-state-update', (event, payload) => {
+  lastWidgetPayload = { ...lastWidgetPayload, ...payload };
+  if (miniWidget && !miniWidget.isDestroyed()) miniWidget.webContents.send('widget-state-update', lastWidgetPayload);
+});
+
+ipcMain.on('widget-action', (event, action) => {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('hotkey', action);
+});
+
 function sendUpdateStatus(payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('update-status', payload);
   }
 }
+
+// electron-updater's releaseNotes is either a plain string (GitHub provider,
+// the release body we now always generate) or, when multiple versions were
+// skipped, an array of { version, note } — flatten either shape to one string.
+function normalizeReleaseNotes(releaseNotes) {
+  if (!releaseNotes) return '';
+  if (typeof releaseNotes === 'string') return releaseNotes;
+  if (Array.isArray(releaseNotes)) {
+    return releaseNotes.map((n) => n.note || '').filter(Boolean).join('\n\n---\n\n');
+  }
+  return '';
+}
+
+// Persisted across the quit-and-install restart: written when an update
+// finishes downloading, read back on the next launch (see
+// checkPendingWhatsNew) so the "What's New" modal can show release notes for
+// the version the app just relaunched into.
+const WHATS_NEW_PATH = path.join(app.getPath('userData'), 'pending-whats-new.json');
 
 function setupAutoUpdates() {
   if (!app.isPackaged) return; // dev runs have no packaged update feed to check
@@ -107,9 +201,33 @@ function setupAutoUpdates() {
   autoUpdater.on('update-not-available', () => sendUpdateStatus({ state: 'up-to-date' }));
   autoUpdater.on('error', (err) => sendUpdateStatus({ state: 'error', message: err.message }));
   autoUpdater.on('download-progress', (p) => sendUpdateStatus({ state: 'downloading', percent: p.percent }));
-  autoUpdater.on('update-downloaded', (info) => sendUpdateStatus({ state: 'downloaded', version: info.version }));
+  autoUpdater.on('update-downloaded', (info) => {
+    sendUpdateStatus({ state: 'downloaded', version: info.version });
+    try {
+      fs.writeFileSync(WHATS_NEW_PATH, JSON.stringify({
+        version: info.version,
+        notes: normalizeReleaseNotes(info.releaseNotes)
+      }));
+    } catch { /* best-effort — a missed write just skips the next modal */ }
+  });
 
   autoUpdater.checkForUpdates().catch((err) => sendUpdateStatus({ state: 'error', message: err.message }));
+}
+
+// If the app just relaunched into the version an update-downloaded event
+// saved notes for, show the "What's New" modal once and clear the pending
+// file. A version mismatch (manual reinstall, downgrade) just discards it.
+function checkPendingWhatsNew() {
+  let pending;
+  try {
+    pending = JSON.parse(fs.readFileSync(WHATS_NEW_PATH, 'utf8'));
+  } catch {
+    return;
+  }
+  fs.unlink(WHATS_NEW_PATH, () => {});
+  if (pending && pending.version === app.getVersion()) {
+    sendUpdateStatus({ state: 'whats-new', version: pending.version, notes: pending.notes });
+  }
 }
 
 ipcMain.handle('get-app-version', () => app.getVersion());
@@ -217,6 +335,36 @@ ipcMain.handle('pick-wallpaper-image', async () => {
   });
   if (result.canceled || !result.filePaths.length) return null;
   return { path: result.filePaths[0], name: path.basename(result.filePaths[0]) };
+});
+
+// Global (system-wide) hotkeys — off by default until the renderer tells us
+// the user's saved preference, so a fresh launch never silently grabs media
+// keys before settings have loaded.
+const GLOBAL_HOTKEYS = {
+  'MediaPlayPause': 'play-pause',
+  'MediaNextTrack': 'next',
+  'MediaPreviousTrack': 'prev',
+  'CommandOrControl+Alt+F': 'focus-toggle'
+};
+
+function sendHotkey(action) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('hotkey', action);
+  }
+}
+
+ipcMain.handle('set-global-hotkeys', (event, enabled) => {
+  globalShortcut.unregisterAll();
+  if (!enabled) return;
+  Object.entries(GLOBAL_HOTKEYS).forEach(([accelerator, action]) => {
+    try {
+      globalShortcut.register(accelerator, () => sendHotkey(action));
+    } catch { /* accelerator already claimed by another app — skip it */ }
+  });
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 ipcMain.handle('pick-audio-folder', async () => {

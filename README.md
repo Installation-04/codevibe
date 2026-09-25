@@ -51,7 +51,14 @@ xattr -cr /Applications/CodeVibe.app
 - **21 themes** — Lofi Sunset, Ambient Forest, Synthwave, Midnight Focus, Codefi Neon, Rainy Night, Matrix, Cyberpunk, Retro Cyberpunk, Retro Games, Sleek, Minimalist, VibeCoding, Retro Hacker, Solarized Dusk, Pastel Dreams, Frost Throne, Void Marine, Emerald Kingdom, Wasteland Radio, Pixel Quest (the last five are original game-genre-inspired looks — Nordic fantasy, sci-fi military, retro RPG, and so on) — plus a 16-color quick-pick accent palette and full custom accent/background color pickers.
 - **Background modes** — **Dynamic Theme** (animated gradient/visualizer, with Gradient/Grid/Vignette/Noise background patterns), **Wallpaper** (any image of your choice, with Cover/Contain/Tile fit, adjustable dim and blur, and an option to overlay the visualizer on top), or **Scene** (six illustrated backdrops — see below).
 - **Panel appearance** — adjustable blur and opacity for the glass-style sidebar and transport bar.
-- **Versioning & auto-update** — the current version is shown in the sidebar, with a refresh button to check for updates on demand at any time; packaged builds also check GitHub Releases automatically on startup via `electron-updater`, and either way show an in-app banner to download and restart when a newer release is found.
+- **Versioning & auto-update** — the current version is shown in the sidebar, with a refresh button to check for updates on demand at any time; packaged builds also check GitHub Releases automatically on startup via `electron-updater`, and either way show an in-app banner to download and restart when a newer release is found. After installing an update, a **"What's New"** dialog shows that release's notes.
+- **Custom themes** — beyond the 21 built-in presets, pick any accent/background colors and save them as your own named theme, which then shows up alongside the presets (and can be deleted again).
+- **Ambient soundscape mixer** — layer procedurally generated Rain, Fire, or Café ambience under your music (or on its own), each with its own volume slider — no external audio files, everything is synthesized locally. You can also add your own looping ambient audio file as an extra layer.
+- **Global hotkeys** — system-wide media keys (play/pause, next, previous) and Ctrl/Cmd+Alt+F to start/pause the focus timer work even when CodeVibe isn't focused; toggle on the Theme tab.
+- **Gamepad navigation** — an optional D-pad/A-button navigation mode for browsing tabs and controls with a controller.
+- **A floating mini-widget** — a small always-on-top window with your avatar, the focus timer, and play/pause/next/prev controls, so it can float over your editor. Toggle it from the Theme tab.
+- **Gentle break reminders** — an optional toast every 30/45/60/90 minutes suggesting a stretch break.
+- **Profile export/import** — save your whole profile (avatar, coins, achievements, playlists, settings) to a JSON file and restore it, e.g. on another machine.
 - The app remembers which sidebar tab you were on, along with every other setting (theme, colors, visualizer style, clock style/font/size, background mode/pattern, wallpaper, panel appearance, playlists, shuffle/repeat/mute, streaming history), between launches.
 
 ## Your Vibe Companion — avatar, pet, focus timer, quests, and a marketplace
@@ -65,8 +72,8 @@ CodeVibe has a small, entirely local, entirely cosmetic game layer built around 
 - **Daily & weekly quests** — 3 daily quests (vibe for 15 minutes, finish a focus session, use shuffle) and 3 weekly quests (3 hours of vibing, 5 focus sessions, restyle your avatar 3 times), each resetting automatically and paying out coins on completion.
 - **A marketplace** — the Shop tab lists every unlockable hair style, outfit, accessory, hat, held item, aura, pet, and background **Scene**, grouped by category, each with its Vibe Coin price and owned/equipped state. The same items can also be bought straight from the Avatar tab (and Scenes from the Theme tab) — buying and equipping are one click.
 - **Scenes** — six illustrated background scenes (Cozy Study, Zen Garden, Beach Sunset, Enchanted Forest, Cyberpunk Skyline, Deep Space) selectable as a third background mode alongside Dynamic Theme and Wallpaper.
-- **Achievements & milestones** — 24 achievements covering listening milestones, streaks, night-owl/early-bird sessions, trying every theme/visualizer, shopping, focus sessions, and pet collecting, each paying out a coin reward the moment it's earned, with a toast notification and a running list (with progress) on the Progress tab.
-- **A 7-day listening history chart** and a **shareable Vibe Card** — export your avatar, level, coins, streak, vibe time, and achievement count as a PNG to share.
+- **Achievements & milestones** — 24 achievements covering listening milestones, streaks, night-owl/early-bird sessions, trying every theme/visualizer, shopping, focus sessions, and pet collecting, each paying out a coin reward the moment it's earned, with a toast notification, a running list (with progress) on the Progress tab, and a **Trophy Case** grid view (locked ones shown as silhouettes) as an alternative to the list.
+- **A 7-day listening history chart**, an **8-week listening streak heatmap** (GitHub-contributions-style), and a **shareable Vibe Card** — export your avatar, level, coins, streak, vibe time, and achievement count as a PNG to share.
 
 All of this lives in its own local save file (separate from your regular settings) and never touches the network.
 
@@ -77,6 +84,7 @@ All of this lives in its own local save file (separate from your regular setting
 - A strict Content-Security-Policy blocks inline scripts, `<object>`/`<embed>` content, and changing the page's base URL.
 - Jellyfin/Plex server addresses are required to resolve to an `http://` or `https://` URL before the app will connect to them.
 - Jellyfin/Plex credentials and tokens are encrypted at rest via Electron's `safeStorage` (OS keychain/DPAPI/libsecret) rather than stored in the plain settings file.
+- The floating mini-widget is a second local, trusted `BrowserWindow` (no remote content) with the same popup/navigation hardening as the main window; it only exchanges a small state payload with the main window through the main process, never touches localStorage directly, and is off unless explicitly opened.
 
 ## Getting started
 
@@ -92,7 +100,7 @@ npx playwright install chromium   # once, to download the test browser
 npm run test:smoke
 ```
 
-Runs a headless UI regression suite (`tests/smoke.js`) against the renderer: it checks that every theme/visualizer/clock control renders and wires up correctly, exercises the avatar/pet/shop/progress/scene/focus-timer/quest flow (customizing, buying, equipping, achievements, quests, the coin economy, and the Vibe Card export), and exercises the full Jellyfin and Plex connect → browse → play flows against mocked servers. This is the same check that runs in CI on every push and pull request.
+Runs a headless UI regression suite (`tests/smoke.js`) against the renderer: it checks that every theme/visualizer/clock control renders and wires up correctly, exercises the avatar/pet/shop/progress/scene/focus-timer/quest flow (customizing, buying, equipping, achievements, quests, the coin economy, and the Vibe Card export), exercises custom themes, the ambient mixer, global hotkeys, gamepad navigation, the mini-widget's state push, the streak heatmap/trophy case, and profile export/import, and exercises the full Jellyfin and Plex connect → browse → play flows against mocked servers. This is the same check that runs in CI on every push and pull request.
 
 ## Building installers
 
