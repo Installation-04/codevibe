@@ -14,6 +14,8 @@
     zen_garden:        { label: 'Zen Garden',         free: false, cost: 150 },
     beach_sunset:      { label: 'Beach Sunset',       free: false, cost: 170 },
     enchanted_forest:  { label: 'Enchanted Forest',   free: false, cost: 210 },
+    retro_wave:        { label: 'Retro Wave',         free: false, cost: 230 },
+    pixel_world:       { label: 'Pixel World',        free: false, cost: 250 },
     cyberpunk_skyline: { label: 'Cyberpunk Skyline',  free: false, cost: 260 },
     deep_space:        { label: 'Deep Space',         free: false, cost: 300 }
   };

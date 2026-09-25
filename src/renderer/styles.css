@@ -737,6 +737,99 @@ input[type="range"] {
   94% { filter: brightness(1.12); }
   96% { filter: brightness(0.94); }
 }
+
+/* Retro Wave — synthwave sunset, glowing sun, starry sky, perspective neon grid, CRT scanlines */
+#scene-bg.scene-retro_wave {
+  background:
+    radial-gradient(circle at 50% 32%, #ffe9a8 0%, #ffb36b 34%, #ff6f91 52%, transparent 58%),
+    linear-gradient(180deg, #150a30 0%, #2c0f4a 35%, #7a1f6b 62%, #ff5f6d 82%, #ffb56b 100%);
+  overflow: hidden;
+  animation: retro-sun-glow 6s ease-in-out infinite;
+}
+#scene-bg.scene-retro_wave::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+@keyframes retro-sun-glow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.08) saturate(1.12); }
+}
+.scene-grid {
+  position: absolute;
+  z-index: 2;
+  left: -25%;
+  right: -25%;
+  bottom: 0;
+  height: 65%;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,70,190,0.75) 0 3px, transparent 3px 50px),
+    repeating-linear-gradient(0deg, rgba(0,229,255,0.6) 0 3px, transparent 3px 26px);
+  transform: perspective(320px) rotateX(50deg);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(180deg, transparent, black 12%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, black 12%);
+}
+
+/* Pixel World — banded 8-bit dusk sky, stepped pixel sun, jagged pixel hills, checkered ground */
+#scene-bg.scene-pixel_world {
+  background:
+    radial-gradient(ellipse 90px 26px at 20% 22%, rgba(255,255,255,0.45), transparent 70%),
+    radial-gradient(ellipse 70px 20px at 74% 16%, rgba(255,255,255,0.3), transparent 70%),
+    linear-gradient(180deg,
+      #1a1035 0%, #1a1035 18%,
+      #3b1f63 18%, #3b1f63 36%,
+      #9c3f74 36%, #9c3f74 54%,
+      #e8744a 54%, #e8744a 72%,
+      #ffd27a 72%, #ffd27a 100%);
+  overflow: hidden;
+}
+#scene-bg.scene-pixel_world::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8%;
+  background:
+    repeating-linear-gradient(90deg, #3f7d3a 0 16px, #4a8f45 16px 32px),
+    linear-gradient(180deg, #2f5c2c, #1c3a1a);
+  background-blend-mode: multiply;
+  box-shadow: 0 -2px 0 rgba(0,0,0,0.4);
+}
+.scene-pixel-sun {
+  position: absolute;
+  z-index: 2;
+  width: 120px;
+  height: 120px;
+  left: 60%;
+  top: 14%;
+  background: #fff2b0;
+  box-shadow: 0 0 40px rgba(255,230,150,0.6);
+  clip-path: polygon(
+    30% 0%, 70% 0%, 70% 10%, 90% 10%, 90% 30%, 100% 30%, 100% 70%, 90% 70%, 90% 90%, 70% 90%,
+    70% 100%, 30% 100%, 30% 90%, 10% 90%, 10% 70%, 0% 70%, 0% 30%, 10% 30%, 10% 10%, 30% 10%
+  );
+}
+.scene-pixel-hills {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30%;
+  background: #241734;
+  clip-path: polygon(
+    0% 100%, 0% 60%, 8% 60%, 8% 40%, 16% 40%, 16% 55%, 24% 55%, 24% 30%, 32% 30%, 32% 50%,
+    40% 50%, 40% 20%, 48% 20%, 48% 45%, 56% 45%, 56% 35%, 64% 35%, 64% 55%, 72% 55%, 72% 25%,
+    80% 25%, 80% 48%, 88% 48%, 88% 38%, 96% 38%, 96% 60%, 100% 60%, 100% 100%
+  );
+}
+
 /* Deep Space — layered nebula + parallax starfield canvas + planet + docking platform */
 #scene-bg.scene-deep_space {
   background: linear-gradient(180deg, #060716 0%, #02030a 55%, #000000 100%);
@@ -784,9 +877,12 @@ input[type="range"] {
   pointer-events: none;
 }
 
-.scene-planet, .scene-station { display: none; }
+.scene-planet, .scene-station, .scene-grid, .scene-pixel-sun, .scene-pixel-hills { display: none; }
 #scene-bg.scene-deep_space .scene-planet,
 #scene-bg.scene-deep_space .scene-station { display: block; }
+#scene-bg.scene-retro_wave .scene-grid { display: block; }
+#scene-bg.scene-pixel_world .scene-pixel-sun,
+#scene-bg.scene-pixel_world .scene-pixel-hills { display: block; }
 
 .scene-planet {
   position: absolute;
