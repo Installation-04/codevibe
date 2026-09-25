@@ -106,7 +106,7 @@ Requires [electron-builder](https://www.electron.build/); build on (or cross-com
 
 ## Releasing
 
-Pushing a version tag (e.g. `v1.3.1`, matching `package.json`'s `version`) triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS, and Linux in parallel on their native runners, publishes every installer — including a real macOS `.dmg` — plus the `electron-updater` metadata (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to a GitHub Release matching the tag, then a final job publishes that release (`electron-builder` creates it as a draft and only auto-publishes when a single process builds every platform, which isn't the case here since each OS runs as its own job):
+Pushing a version tag (e.g. `v1.3.1`, matching `package.json`'s `version`) triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS, and Linux in parallel on their native runners, publishes every installer — including a real macOS `.dmg` — plus the `electron-updater` metadata (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) to a GitHub Release matching the tag, then a final job publishes that release (`electron-builder` creates it as a draft and only auto-publishes when a single process builds every platform, which isn't the case here since each OS runs as its own job) and auto-generates its description (a "What's Changed" summary of everything merged since the previous release, via the GitHub API's `generate_release_notes`), so every release always has one:
 
 ```bash
 git tag v1.3.1
