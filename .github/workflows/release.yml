@@ -45,14 +45,20 @@ jobs:
         with:
           node-version: 20
 
-      # electron-builder creates the GitHub release as a draft and only
-      # auto-publishes it when a single process builds every platform. Since
-      # our three platforms run as separate parallel jobs above, none of them
-      # individually finalizes it, so the release is left as a draft
-      # (invisible to normal downloads) unless we un-draft it here.
+      # electron-builder creates the GitHub release as a draft, with no
+      # description, and only auto-publishes it when a single process builds
+      # every platform. Since our three platforms run as separate parallel
+      # jobs above, none of them individually finalizes it, so we un-draft it
+      # here — and always generate a description (a "What's Changed" summary
+      # of everything merged since the previous release) at the same time,
+      # since nothing else sets one.
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          gh release edit "v$VERSION" --draft=false --repo "${{ github.repository }}"
+          REPO="${{ github.repository }}"
+          RELEASE_ID=$(gh api "repos/$REPO/releases/tags/v$VERSION" --jq .id)
+          gh api "repos/$REPO/releases/$RELEASE_ID" -X PATCH \
+            -F draft=false \
+            -F generate_release_notes=true
