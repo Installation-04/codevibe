@@ -24,7 +24,8 @@
     voidmarine:     { label: 'Void Marine',      bg1: '#1c2430', bg2: '#05070a', accent: '#ff8c3d' },
     emeraldkingdom: { label: 'Emerald Kingdom',  bg1: '#1a3320', bg2: '#050f08', accent: '#e8c34d' },
     wastelandradio: { label: 'Wasteland Radio',  bg1: '#3d2a12', bg2: '#140d04', accent: '#7fff6e' },
-    pixelquest:     { label: 'Pixel Quest',      bg1: '#241b4d', bg2: '#0a0618', accent: '#ff5fa8' }
+    pixelquest:     { label: 'Pixel Quest',      bg1: '#241b4d', bg2: '#0a0618', accent: '#ff5fa8' },
+    claude:         { label: 'Claude',           bg1: '#faf9f5', bg2: '#e8e6dc', accent: '#d97757', light: true }
   };
 
   const defaultState = {
@@ -148,6 +149,7 @@
       card.className = 'preset-card' + (state.theme === key ? ' active' : '');
       card.style.background = `linear-gradient(135deg, ${t.bg1}, ${t.bg2})`;
       card.style.borderColor = state.theme === key ? t.accent : 'transparent';
+      if (t.light) { card.style.color = '#141413'; card.style.textShadow = 'none'; }
       card.textContent = t.label;
       card.addEventListener('click', () => {
         state.theme = key;

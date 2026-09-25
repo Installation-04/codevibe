@@ -12,6 +12,34 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: 'Poppins';
+  src: url('fonts/poppins-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('fonts/poppins-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('fonts/lora-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('fonts/lora-400italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
 
 * { box-sizing: border-box; }
 html, body {
@@ -1493,3 +1521,162 @@ input[type="range"] {
 .stat-value { font-size: 14px; }
 .modal-header h2 { font-size: 13px; }
 .np-title { font-size: 15px; }
+
+/* ---------- Claude theme ---------- */
+/* Anthropic's brand look: warm cream instead of the app's usual dark base,
+   Poppins for short/prominent labels, Lora everywhere else, soft rounded
+   shapes and gentle shadows in place of the pixel-platform chrome's hard
+   squared edges and offset drop-shadows. Scoped entirely under this
+   attribute selector so every other theme/scene is untouched. */
+body[data-theme="claude"] {
+  --text: #141413;
+  --text-dim: rgba(20, 20, 19, 0.62);
+  font-family: 'Lora', Georgia, serif;
+}
+body[data-theme="claude"] .hint,
+body[data-theme="claude"] .track-item,
+body[data-theme="claude"] .field-input,
+body[data-theme="claude"] .stream-input-row input,
+body[data-theme="claude"] .achievement-desc,
+body[data-theme="claude"] .toast-sub,
+body[data-theme="claude"] .now-playing {
+  font-family: 'Lora', Georgia, serif;
+}
+body[data-theme="claude"] .brand-name,
+body[data-theme="claude"] .tab-panel h3,
+body[data-theme="claude"] .section-header-row h3,
+body[data-theme="claude"] .modal-header h2,
+body[data-theme="claude"] .stat-value,
+body[data-theme="claude"] .np-title,
+body[data-theme="claude"] .tab-btn,
+body[data-theme="claude"] .btn,
+body[data-theme="claude"] .btn-ghost,
+body[data-theme="claude"] .chip,
+body[data-theme="claude"] .item-card-label,
+body[data-theme="claude"] .preset-card,
+body[data-theme="claude"] .achievement-name,
+body[data-theme="claude"] .toast-title,
+body[data-theme="claude"] .focus-mode,
+body[data-theme="claude"] .focus-widget-mode,
+body[data-theme="claude"] #focus-time,
+body[data-theme="claude"] #focus-widget-time,
+body[data-theme="claude"] .trophy-name {
+  font-family: 'Poppins', Arial, sans-serif;
+}
+
+/* Flat fills: dark-mode chip/panel washes (white-on-dark) flipped to
+   light-mode washes (dark-on-cream). */
+body[data-theme="claude"] .tab-btn,
+body[data-theme="claude"] .btn-ghost,
+body[data-theme="claude"] #wallpaper-controls,
+body[data-theme="claude"] #bg-pattern-controls,
+body[data-theme="claude"] .item-card,
+body[data-theme="claude"] .stat-card,
+body[data-theme="claude"] .achievement-item,
+body[data-theme="claude"] .achievement-item.unlocked,
+body[data-theme="claude"] .pet-preview,
+body[data-theme="claude"] .pet-widget-canvas,
+body[data-theme="claude"] .trophy-badge,
+body[data-theme="claude"] .xp-bar,
+body[data-theme="claude"] .heatmap-cell {
+  background: rgba(20, 20, 19, 0.05);
+}
+body[data-theme="claude"] .tab-btn:hover,
+body[data-theme="claude"] .item-card:hover,
+body[data-theme="claude"] .track-item:hover,
+body[data-theme="claude"] .icon-btn:hover {
+  background: rgba(20, 20, 19, 0.08);
+}
+body[data-theme="claude"] .field-input,
+body[data-theme="claude"] .stream-input-row input {
+  background: rgba(20, 20, 19, 0.04);
+  border-color: rgba(20, 20, 19, 0.15);
+}
+body[data-theme="claude"] .avatar-preview {
+  background: radial-gradient(circle at 50% 35%, rgba(20,20,19,0.06), rgba(20,20,19,0.02) 70%);
+  border-color: rgba(20, 20, 19, 0.12);
+}
+body[data-theme="claude"] .swatch {
+  box-shadow: inset 0 0 0 1px rgba(20, 20, 19, 0.18);
+}
+body[data-theme="claude"] input[type="range"] { background: rgba(20, 20, 19, 0.15); }
+body[data-theme="claude"] ::-webkit-scrollbar-thumb { background: rgba(20, 20, 19, 0.18); }
+
+body[data-theme="claude"] #sidebar {
+  border-right: 1px solid rgba(20, 20, 19, 0.08);
+  box-shadow: 1px 0 0 rgba(20, 20, 19, 0.06);
+}
+body[data-theme="claude"] .modal-header,
+body[data-theme="claude"] .modal-actions {
+  border-color: rgba(20, 20, 19, 0.1) !important;
+}
+body[data-theme="claude"] .preset-card-delete {
+  background: rgba(20, 20, 19, 0.45);
+}
+
+/* Shapes: soft rounded corners and pills/circles in place of square pixel
+   corners; gentle shadows in place of hard offset ones. */
+body[data-theme="claude"] .tab-btn,
+body[data-theme="claude"] .btn,
+body[data-theme="claude"] .btn-ghost,
+body[data-theme="claude"] .field-input,
+body[data-theme="claude"] .stream-input-row input,
+body[data-theme="claude"] .item-card,
+body[data-theme="claude"] .preset-card,
+body[data-theme="claude"] .avatar-preview,
+body[data-theme="claude"] .pet-preview,
+body[data-theme="claude"] .stat-card,
+body[data-theme="claude"] .achievement-item,
+body[data-theme="claude"] .toast,
+body[data-theme="claude"] .pet-widget-canvas,
+body[data-theme="claude"] .focus-widget,
+body[data-theme="claude"] .modal-box,
+body[data-theme="claude"] .trophy-badge,
+body[data-theme="claude"] .clock-widget,
+body[data-theme="claude"] #stream-frame-wrap,
+body[data-theme="claude"] #wallpaper-controls,
+body[data-theme="claude"] #bg-pattern-controls {
+  border-radius: 14px !important;
+}
+body[data-theme="claude"] .chip,
+body[data-theme="claude"] .transport,
+body[data-theme="claude"] .brand-coins,
+body[data-theme="claude"] .xp-bar,
+body[data-theme="claude"] .xp-bar-fill,
+body[data-theme="claude"] .heatmap-cell {
+  border-radius: 999px !important;
+}
+body[data-theme="claude"] .icon-btn.play,
+body[data-theme="claude"] .brand-dot,
+body[data-theme="claude"] .swatch,
+body[data-theme="claude"] .swatch.active,
+body[data-theme="claude"] .preset-card-delete {
+  border-radius: 50% !important;
+}
+
+body[data-theme="claude"] .btn,
+body[data-theme="claude"] .btn-ghost {
+  border: 1px solid rgba(20, 20, 19, 0.12);
+  box-shadow: 0 1px 2px rgba(20, 20, 19, 0.08);
+}
+body[data-theme="claude"] .btn:hover,
+body[data-theme="claude"] .btn-ghost:hover {
+  box-shadow: 0 3px 8px rgba(20, 20, 19, 0.14);
+}
+body[data-theme="claude"] .btn:active { box-shadow: 0 1px 2px rgba(20, 20, 19, 0.08); }
+body[data-theme="claude"] .tab-btn.active,
+body[data-theme="claude"] .chip.active,
+body[data-theme="claude"] .item-card.active {
+  box-shadow: none;
+}
+body[data-theme="claude"] .transport {
+  border: 1px solid rgba(20, 20, 19, 0.1);
+  box-shadow: 0 4px 16px rgba(20, 20, 19, 0.1);
+}
+body[data-theme="claude"] .modal-box {
+  border: 1px solid rgba(20, 20, 19, 0.1);
+  box-shadow: 0 20px 60px rgba(20, 20, 19, 0.18);
+}
+body[data-theme="claude"] .icon-btn.play {
+  box-shadow: 0 2px 8px rgba(217, 119, 87, 0.35);
+}

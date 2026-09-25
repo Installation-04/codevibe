@@ -76,7 +76,7 @@ async function testStructureAndControls(browser) {
     clockFontChips: document.querySelectorAll('#clock-font-row .chip').length
   }));
 
-  assert.equal(counts.presets, 21, 'theme preset grid should render 21 cards');
+  assert.equal(counts.presets, 22, 'theme preset grid should render 22 cards');
   assert.equal(counts.swatches, 16, 'accent swatch row should render 16 swatches');
   assert.equal(counts.vizChips, 7, 'visualizer style row should render 7 chips');
   assert.equal(counts.patternChips, 4, 'background pattern row should render 4 chips');
