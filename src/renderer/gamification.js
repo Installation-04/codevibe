@@ -18,7 +18,8 @@
     pixel_world:       { label: 'Pixel World',        free: false, cost: 250 },
     cyberpunk_skyline: { label: 'Cyberpunk Skyline',  free: false, cost: 260 },
     deep_space:        { label: 'Deep Space',         free: false, cost: 300 },
-    ring_world:        { label: 'Ringworld',          free: false, cost: 320 }
+    ring_world:        { label: 'Ringworld',          free: false, cost: 320 },
+    mystic_portal:     { label: 'Mystic Portal',       free: false, cost: 280 }
   };
 
   const HAIR_COST = { long: 90, bun: 90, mohawk: 130, afro: 110, undercut: 100, twintails: 110 };
